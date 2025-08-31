@@ -1,0 +1,378 @@
+// Application state
+let flashcardsData = [];
+let hasSavedCurrentSet = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('AI Study Buddy loaded successfully!');
+    
+    // Initialize card flip functionality
+    const flashcardElements = document.querySelectorAll('.flashcard');
+    flashcardElements.forEach(card => {
+        card.addEventListener('click', function() {
+            this.classList.toggle('flipped');
+        });
+    });
+    
+    // Generate flashcards button
+    const generateBtn = document.getElementById('generate-btn');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', generateFlashcards);
+    }
+    
+    // Save flashcards button
+    const saveBtn = document.getElementById('save-btn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveFlashcards);
+    }
+});
+
+// Generate flashcards function
+function generateFlashcards() {
+    // Reset save state when generating new flashcards
+    hasSavedCurrentSet = false;
+    
+    const notes = document.getElementById('study-notes').value;
+    const count = parseInt(document.getElementById('num-questions').value);
+    
+    if (!notes) {
+        alert('Please enter some study notes first.');
+        return;
+    }
+    
+    if (count < 1 || count > 5) {
+        alert('Please enter a number between 1 and 5 for the number of questions.');
+        return;
+    }
+    
+    // Show loading animation
+    const loader = document.getElementById('loader');
+    const generateBtn = document.getElementById('generate-btn');
+    const saveBtn = document.getElementById('save-btn');
+    
+    loader.style.display = 'block';
+    generateBtn.disabled = true;
+    
+    // Send request to backend
+    fetch('/generate_questions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            notes: notes,
+            num_questions: count
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            flashcardsData = data.questions.map(q => ({
+                ...q,
+                userAnswer: null,
+                answered: false
+            }));
+            displayFlashcards();
+            
+            // Enable save button for new flashcards
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Flashcards';
+            hasSavedCurrentSet = false;
+            
+            // Update button title for user information
+            saveBtn.title = 'Save these flashcards to your study history';
+            
+        } else {
+            alert('Error generating questions: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error generating questions');
+    })
+    .finally(() => {
+        loader.style.display = 'none';
+        generateBtn.disabled = false;
+    });
+}
+
+// Update Save Button state function definition
+function updateSaveButtonState() {
+    const saveBtn = document.getElementById('save-btn');
+    if (!saveBtn) return;
+    
+    if (hasSavedCurrentSet) {
+        // Already saved current set - keep disabled
+        saveBtn.disabled = true;
+        saveBtn.textContent = '✓ Saved';
+        saveBtn.title = 'Flashcards saved! Generate new flashcards to save another set.';
+    } else if (flashcardsData && flashcardsData.length > 0) {
+        // Have flashcards, check if all are answered
+        const unanswered = flashcardsData.filter(card => 
+            card.userAnswer === null || card.userAnswer === undefined
+        ).length;
+        
+        saveBtn.disabled = unanswered > 0;
+        saveBtn.textContent = 'Save Flashcards';
+        saveBtn.title = unanswered > 0 ? 
+            `Please answer all ${unanswered} questions before saving` : 
+            'Save these flashcards to your study history';
+    } else {
+        // No flashcards generated yet
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Save Flashcards';
+        saveBtn.title = 'Generate flashcards first';
+    }
+}
+
+// Function to set uniform card heights
+function setUniformCardHeights() {
+    const flashcards = document.querySelectorAll('.flashcard');
+    let maxHeight = 0;
+    
+    // First reset heights to auto to get accurate measurements
+    flashcards.forEach(card => {
+        card.style.height = 'auto';
+    });
+    
+    // Find the maximum height
+    flashcards.forEach(card => {
+        const front = card.querySelector('.flashcard-front');
+        const back = card.querySelector('.flashcard-back');
+        
+        // Use the taller of the two sides
+        const cardHeight = Math.max(
+            front.scrollHeight, 
+            back.scrollHeight
+        );
+        
+        if (cardHeight > maxHeight) {
+            maxHeight = cardHeight;
+        }
+    });
+    
+    // Add some padding to the max height
+    maxHeight += 20;
+    
+    // Apply the maximum height to all cards
+    flashcards.forEach(card => {
+        card.style.height = `${maxHeight}px`;
+    });
+}
+
+// Display flashcards function
+function displayFlashcards() {
+    const flashcardsContainer = document.getElementById('flashcards-container');
+    const scoreContainer = document.getElementById('score-container');
+    
+    flashcardsContainer.innerHTML = '';
+    scoreContainer.textContent = 'Score: 0/0 (0%)';
+    
+    flashcardsData.forEach((card, index) => {
+        const flashcardEl = document.createElement('div');
+        flashcardEl.className = 'flashcard';
+        flashcardEl.setAttribute('data-index', index);
+        
+        flashcardEl.innerHTML = `
+            <div class="flashcard-inner">
+                <div class="flashcard-front">
+                    <div class="question">${card.question}</div>
+                    <div class="options">
+                        ${card.options.map((option, optIndex) => `
+                            <div class="option" data-option="${optIndex}">
+                                ${String.fromCharCode(65 + optIndex)}) ${option}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="instructions">Select an answer, then click to flip</div>
+                </div>
+                <div class="flashcard-back">
+                    <div class="question">${card.question}</div>
+                    <div class="feedback" id="feedback-${index}"></div>
+                    <div class="instructions">Click to return to question</div>
+                </div>
+            </div>
+        `;
+        
+        flashcardsContainer.appendChild(flashcardEl);
+        
+        // Add event listeners for option selection
+        const optionEls = flashcardEl.querySelectorAll('.option');
+        optionEls.forEach(optionEl => {
+            optionEl.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const cardIndex = parseInt(flashcardEl.getAttribute('data-index'));
+                const optionIndex = parseInt(this.getAttribute('data-option'));
+                selectAnswer(cardIndex, optionIndex);
+            });
+        });
+        
+        // Add flip functionality
+        flashcardEl.addEventListener('click', function() {
+            const cardIndex = parseInt(this.getAttribute('data-index'));
+            const card = flashcardsData[cardIndex];
+            
+            if (card.userAnswer === null) {
+                alert('Please select an answer first.');
+                return;
+            }
+            
+            if (!card.answered) {
+                card.answered = true;
+                updateCardUI(cardIndex);
+                updateScore();
+                flashcardEl.classList.add('revealed');
+            }
+            
+            this.classList.toggle('flipped');
+        });
+    });
+    setTimeout(setUniformCardHeights, 100);
+    updateSaveButtonState();
+}
+
+// Handle answer selection
+function selectAnswer(cardIndex, optionIndex) {
+    const card = flashcardsData[cardIndex];
+    if (card.answered) return;
+    
+    card.userAnswer = optionIndex;
+    
+    const flashcardEl = document.querySelector(`.flashcard[data-index="${cardIndex}"]`);
+    const optionEls = flashcardEl.querySelectorAll('.option');
+    
+    optionEls.forEach(el => el.classList.remove('selected'));
+    optionEls[optionIndex].classList.add('selected');
+}
+
+// Function whenever answers change
+function selectAnswer(cardIndex, optionIndex) {
+    const card = flashcardsData[cardIndex];
+    if (card.answered) return;
+    
+    card.userAnswer = optionIndex;
+    
+    const flashcardEl = document.querySelector(`.flashcard[data-index="${cardIndex}"]`);
+    const optionEls = flashcardEl.querySelectorAll('.option');
+    
+    optionEls.forEach(el => el.classList.remove('selected'));
+    optionEls[optionIndex].classList.add('selected');
+    
+    // Update save button state when answers change
+    updateSaveButtonState();
+}
+
+// Update card UI after answer is revealed
+function updateCardUI(cardIndex) {
+    const card = flashcardsData[cardIndex];
+    const flashcardEl = document.querySelector(`.flashcard[data-index="${cardIndex}"]`);
+    const optionEls = flashcardEl.querySelectorAll('.option');
+    const feedbackEl = document.getElementById(`feedback-${cardIndex}`);
+    
+    optionEls.forEach((el, index) => {
+        if (index === card.correctAnswer) {
+            el.classList.add('correct');
+        }
+        if (index === card.userAnswer) {
+            if (index === card.correctAnswer) {
+                el.classList.add('correct');
+                feedbackEl.textContent = "Correct! ✅";
+                feedbackEl.className = "feedback correct";
+            } else {
+                el.classList.add('incorrect');
+                feedbackEl.textContent = "Incorrect! ❌";
+                feedbackEl.className = "feedback incorrect";
+            }
+        }
+    });
+}
+
+// Update score function
+function updateScore() {
+    const answeredCount = flashcardsData.filter(card => card.answered).length;
+    const totalCount = flashcardsData.length;
+    
+    if (answeredCount < totalCount) {
+        // Show progress, not score
+        document.getElementById('score-container').textContent = 
+            `Progress: ${answeredCount}/${totalCount} answered`;
+    } else {
+        // All answered, show actual score
+        const correctCount = flashcardsData.filter(card => 
+            card.userAnswer === card.correctAnswer
+        ).length;
+        const percentage = Math.round((correctCount / totalCount) * 100);
+        document.getElementById('score-container').textContent = 
+            `Score: ${correctCount}/${totalCount} (${percentage}%)`;
+    }
+}
+
+// Save flashcards function
+function saveFlashcards() {
+    // Prevent saving if already saved
+    if (hasSavedCurrentSet) {
+        alert('These flashcards have already been saved. Generate new flashcards to save another set.');
+        return;
+    }
+    
+    const notes = document.getElementById('study-notes').value;
+    
+    if (flashcardsData.length === 0) {
+        alert('No flashcards to save! Please generate some flashcards first.');
+        return;
+    }
+    
+    const unanswered = flashcardsData.filter(card => card.userAnswer === null);
+    if (unanswered.length > 0) {
+        alert(`Please answer all ${unanswered.length} unanswered questions before saving.`);
+        return;
+    }
+
+    const unrevealed = flashcardsData.filter(card => !card.answered).length;
+    if (unrevealed > 0) {
+        alert(`Please reveal all ${unrevealed} answers before saving.`);
+        return;
+    }
+    
+    const saveBtn = document.getElementById('save-btn');
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
+    
+    fetch('/save_flashcards', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            flashcards: flashcardsData,
+            notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Mark as saved and update UI
+            hasSavedCurrentSet = true;
+            saveBtn.disabled = true;
+            saveBtn.textContent = '✓ Saved';
+            saveBtn.title = 'Flashcards saved! Generate new flashcards to save another set.';
+            
+            alert('Flashcards saved successfully!');
+            console.log('Session ID:', data.session_id);
+            
+        } else {
+            alert('Error saving flashcards: ' + data.message);
+            saveBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving flashcards');
+        saveBtn.disabled = false;
+    })
+    .finally(() => {
+        if (!hasSavedCurrentSet) {
+            saveBtn.textContent = originalText;
+        }
+    });
+}

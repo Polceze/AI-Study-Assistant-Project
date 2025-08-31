@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI Study Buddy - Flashcard Generator</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>AI Study Buddy</h1>
+                <p class="tagline">Generate interactive flashcards from your study notes</p>
+            </header>
+            
+            <div class="app-container">
+                <section class="input-section">
+                    <h2 class="section-title">
+                        <span class="icon">📝</span>
+                        Your Study Notes
+                    </h2>
+                    <textarea id="study-notes" placeholder="Paste your study notes here..."></textarea>
+                    
+                    <div class="api-key-container">
+                        <label for="api-key">Hugging Face API Key (optional for demo):</label>
+                        <input type="password" id="api-key" class="api-key-input" placeholder="Enter your HF API key if you have one">
+                    </div>
+                    
+                    <div class="settings">
+                        <div class="num-questions">
+                            <label for="num-questions">Number of Questions:</label>
+                            <input type="number" id="num-questions" min="1" max="5" value="3">
+                        </div>
+                        <button id="generate-btn">Generate Flashcards</button>
+                    </div>
+                    
+                    <div class="loader" id="loader">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                </section>
+                
+                <section class="flashcards-section">
+                    <h2 class="section-title">
+                        <span class="icon">📋</span>
+                        Your Flashcards
+                    </h2>
+                    <p class="instructions">Select an answer, then click the card to flip and check if you were correct!</p>
+                    
+                    <div class="flashcards-container" id="flashcards-container">
+                        <div class="flashcard-placeholder">
+                            <p>Your flashcards will appear here after generating them from your notes.</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="results-section">
+                    <h2 class="section-title">
+                        <span class="icon">📊</span>
+                        Your Results
+                    </h2>
+                    <div class="score" id="score-container">
+                        Score: 0/0 (0%)
+                    </div>
+                    <button id="save-btn" disabled>Save Flashcards</button>
+                </section>
+            </div>
+        </div>
+
+        <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    </body>
+</html>
