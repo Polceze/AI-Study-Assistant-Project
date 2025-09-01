@@ -385,64 +385,6 @@ button .checkmark {
     margin: 20px 0;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-    h1 {
-        font-size: 2rem;
-    }
-    
-    .tagline {
-        font-size: 1rem;
-    }
-    
-    .section-title {
-        font-size: 1.3rem;
-    }
-    
-    .flashcards-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .settings {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .num-questions {
-        min-width: 100%;
-    }
-    
-    .flashcard {
-        height: 400px;
-    }
-}
-
-@media (max-width: 480px) {
-    body {
-        padding: 10px;
-    }
-    
-    .container {
-        padding: 10px;
-    }
-    
-    .input-section, .flashcards-section, .results-section {
-        padding: 15px;
-    }
-    
-    h1 {
-        font-size: 1.8rem;
-    }
-    
-    button {
-        width: 100%;
-    }
-    
-    .flashcard {
-        height: 450px;
-    }
-}
-
 /* Loading animation */
 .loader {
     display: none;
@@ -501,3 +443,299 @@ button .checkmark {
     color: #666;
     font-style: italic;
 }
+
+/* Saved Sessions section - Match other sections */
+.sessions-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    margin-top: 20px;
+}
+
+.sessions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.sessions-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-sessions {
+    padding: 10px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    min-width: 250px;
+    transition: border-color 0.3s;
+}
+
+.search-sessions:focus {
+    outline: none;
+    border-color: #6e8efb;
+}
+
+/* Session items - simplified and compact */
+.sessions-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.session-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto; /* Changed from 2fr 100px 120px auto */
+    gap: 12px; /* Reduced gap */
+    align-items: center;
+    padding: 10px 15px; /* Reduced padding */
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.session-item:hover {
+    background-color: #f9f9f9;
+    border-color: #6e8efb;
+}
+
+.session-topic {
+    font-weight: 600;
+    color: #333;
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.session-date {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* Compact stats with side-by-side labels */
+.session-content {
+    flex: 1;
+    min-width: 0; /* Prevent overflow */
+}
+
+.session-topic {
+    font-weight: 600;
+    color: #333;
+    font-size: 1rem;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.session-date {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.session-stats {
+    display: flex;
+    gap: 10px; /* Reduced gap */
+    align-items: center;
+    justify-self: end; /* Push to the right but within available space */
+}
+
+.session-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px; /* Reduced gap */
+    padding: 4px 8px; /* Reduced padding */
+    border-radius: 6px;
+    font-size: 0.85rem; /* Slightly smaller font */
+    white-space: nowrap;
+    min-width: auto; /* Remove fixed min-width */
+}
+
+.session-questions {
+    background: #e8f4fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+}
+
+.session-score {
+    background: #f3e5f5;
+    color: #7b1fa2;
+    border: 1px solid #e1bee7;
+}
+
+.delete-session-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px; /* Reduced padding */
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.85rem; /* Slightly smaller font */
+    white-space: nowrap;
+    justify-self: end; /* Ensure it stays at the end */
+}
+
+.session-questions {
+    background: #e8f4fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+    min-width: 90px;
+}
+
+.session-score {
+    background: #f3e5f5;
+    color: #7b1fa2;
+    border: 1px solid #e1bee7;
+    min-width: 100px;
+}
+
+.delete-session-btn:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
+.delete-session-btn:active {
+    transform: translateY(0);
+}
+
+/* Pagination controls */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+    padding: 15px;
+}
+
+.pagination-btn {
+    background: #6e8efb;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.pagination-btn:hover {
+    background: #5a7df9;
+    transform: translateY(-2px);
+}
+
+.pagination-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.pagination-info {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* Responsive design for sessions */
+@media (max-width: 768px) {
+    .session-item {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        text-align: left;
+        padding: 15px;
+    }
+    
+    .sessions-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-sessions {
+        min-width: 100%;
+    }
+    
+    .session-stats {
+        justify-content: flex-start;
+        gap: 15px;
+    }
+    
+    .session-stat {
+        min-width: auto;
+    }
+    
+    .pagination {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .delete-session-btn {
+        justify-self: start;
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2rem;
+    }
+    
+    .tagline {
+        font-size: 1rem;
+    }
+    
+    .section-title {
+        font-size: 1.3rem;
+    }
+    
+    .flashcards-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .settings {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .num-questions {
+        min-width: 100%;
+    }
+    
+    .flashcard {
+        height: 400px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        padding: 10px;
+    }
+    
+    .input-section, .flashcards-section, .results-section {
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    button {
+        width: 100%;
+    }
+    
+    .flashcard {
+        height: 450px;
+    }
+}
+

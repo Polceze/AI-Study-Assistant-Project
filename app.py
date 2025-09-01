@@ -276,6 +276,24 @@ def get_flashcards(session_id):
     except Exception as e:
         print(f"❌ Error in get_flashcards: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+    
+@app.route('/delete_session/<int:session_id>', methods=['DELETE'])
+def delete_session(session_id):
+    success = db.delete_session(session_id)
+    if success:
+        return jsonify({"status": "success", "message": "Session deleted"})
+    else:
+        return jsonify({"status": "error", "message": "Could not delete session"}), 500
+
+@app.route('/list_sessions', methods=['GET'])
+def list_sessions():
+    result = db.get_sessions()
+    print("DEBUG result:", result)
+    
+    if result.get('status') == 'success':
+        return jsonify({"status": "success", "sessions": result.get('sessions', [])})
+    else:
+        return jsonify({"status": "error", "message": result.get('message', 'Unknown error')})
 
 if __name__ == '__main__':
     # Use environment variable for host/port in production

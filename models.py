@@ -2,6 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 from config import Config
 import json
+import pymysql
 
 class Database:
     def __init__(self):
@@ -142,22 +143,51 @@ class Database:
             cursor.close()
             self.disconnect()
     
-    def get_study_sessions(self):
-        """Retrieve all study sessions"""
+    def get_sessions(self):
         connection = self.connect()
         if connection is None:
             return []
-        
         try:
-            cursor = connection.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM study_sessions ORDER BY created_at DESC")
-            return cursor.fetchall()
+            with connection.cursor(dictionary=True) as cursor:  # Use the connection variable
+                cursor.execute("""
+                    SELECT 
+                        s.id,
+                        s.title,
+                        DATE_FORMAT(s.created_at, '%Y-%m-%dT%H:%i:%s') AS created_at,
+                        COUNT(c.id) AS total_questions,
+                        CASE 
+                            WHEN COUNT(c.id) > 0 
+                            THEN ROUND(SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(c.id), 2) 
+                            ELSE NULL 
+                        END AS score_percentage
+                    FROM study_sessions s
+                    LEFT JOIN studycards c ON s.id = c.session_id
+                    GROUP BY s.id, s.title, s.created_at
+                    ORDER BY s.created_at DESC
+                """)
+                sessions = cursor.fetchall()
+
+                # Convert Decimals to appropriate types
+                for s in sessions:
+                    if s.get("score_percentage") is not None:
+                        s["score_percentage"] = float(s["score_percentage"])
+                    else:
+                        s["score_percentage"] = 0.0
+                        
+                    if s.get("correct_answers") is not None:
+                        s["correct_answers"] = int(s["correct_answers"])
+                    else:
+                        s["correct_answers"] = 0
+
+                print("DEBUG sessions:", sessions)
+                return {"status": "success", "sessions": sessions}
         except Error as e:
-            print(f"❌ Error retrieving study sessions: {e}")
-            return []
+            print(f"❌ Error retrieving sessions: {e}")
+            return {"status": "error", "message": str(e)}
         finally:
-            cursor.close()
-            self.disconnect()
+            if connection and connection.is_connected():
+                connection.close()
+
     
     def get_flashcards_by_session(self, session_id):
         """Retrieve studycards for a specific study session"""
@@ -184,3 +214,13 @@ class Database:
         finally:
             cursor.close()
             self.disconnect()
+
+    def delete_session(self, session_id):
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("DELETE FROM sessions WHERE id = %s", (session_id,))
+                conn.commit()
+                return True
+        finally:
+            conn.close()

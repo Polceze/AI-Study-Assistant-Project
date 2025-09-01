@@ -383,3 +383,291 @@ function saveFlashcards() {
         }
     });
 }
+
+// Load saved sessions from backend
+// Load saved sessions from backend
+function loadSessions() {
+    console.log('🔍 Loading sessions from /list_sessions...');
+    
+    fetch('/list_sessions')
+        .then(response => {
+            console.log('📥 Response received, status:', response.status, response.statusText);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📊 Sessions data received:', data);
+            
+            if (data.status === 'success') {
+                console.log(`✅ Found ${data.sessions.length} sessions`);
+                renderSessions(data.sessions);
+            } else {
+                console.error('❌ Error loading sessions:', data.message);
+                // Show error message to user
+                const container = document.getElementById('sessions-container');
+                container.innerHTML = `<p class="error">Error loading sessions: ${data.message}</p>`;
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error fetching sessions:', error);
+            // Show error message to user
+            const container = document.getElementById('sessions-container');
+            container.innerHTML = `<p class="error">Failed to load sessions. Please check console for details.</p>`;
+        });
+}
+
+// Render sessions in the UI
+function renderSessions(sessions) {
+    const container = document.getElementById('sessions-container');
+    container.innerHTML = '';
+
+    // Safety check - ensure sessions is an array
+    if (!Array.isArray(sessions)) {
+        console.error('❌ renderSessions expected array but got:', sessions);
+        container.innerHTML = '<p class="error">Invalid session data format</p>';
+        return;
+    }
+
+    if (sessions.length === 0) {
+        container.innerHTML = '<p>No saved sessions yet.</p>';
+        return;
+    }
+
+    const list = document.createElement('ul');
+    list.className = 'sessions-list';
+
+    sessions.forEach(session => {
+        const item = document.createElement('li');
+        item.className = 'session-item';
+
+        item.innerHTML = `
+            <div>
+                <div class="session-topic">${session.title}</div>
+                <div class="session-date">${new Date(session.created_at).toLocaleString()}</div>
+            </div>
+            <span class="session-questions" title="Total questions">${session.total_questions}</span>
+            <span class="session-score" title="Score percentage">${session.score_percentage}%</span>
+            <button class="delete-session-btn" data-id="${session.id}">Delete</button>
+        `;
+
+        list.appendChild(item);
+    });
+
+    container.appendChild(list);
+
+    // Attach delete listeners
+    const deleteButtons = container.querySelectorAll('.delete-session-btn');
+    deleteButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const sessionId = btn.getAttribute('data-id');
+            deleteSession(sessionId);
+        });
+    });
+}
+
+// Delete a session
+function deleteSession(sessionId) {
+    if (!confirm("Are you sure you want to delete this session?")) return;
+
+    fetch(`/delete_session/${sessionId}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                loadSessions(); // refresh after delete
+            } else {
+                alert('Error deleting session: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting session:', error);
+            alert('Error deleting session');
+        });
+}
+
+// Load sessions on page load
+document.addEventListener('DOMContentLoaded', loadSessions);
+
+// Pagination state
+let currentPage = 1;
+const sessionsPerPage = 5;
+let allSessions = [];
+
+// Load saved sessions with pagination
+function loadSessions(page = 1) {
+    console.log('🔍 Loading sessions from /list_sessions...');
+    currentPage = page;
+    
+    fetch('/list_sessions')
+        .then(response => {
+            console.log('📥 Response received, status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📊 Sessions data received:', data);
+            
+            if (data.status === 'success') {
+                allSessions = data.sessions;
+                console.log(`✅ Found ${allSessions.length} total sessions`);
+                renderPaginatedSessions();
+            } else {
+                console.error('❌ Error loading sessions:', data.message);
+                const container = document.getElementById('sessions-container');
+                container.innerHTML = `<p class="error">Error loading sessions: ${data.message}</p>`;
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error fetching sessions:', error);
+            const container = document.getElementById('sessions-container');
+            container.innerHTML = `<p class="error">Failed to load sessions. Please check console for details.</p>`;
+        });
+}
+
+// Render paginated sessions
+function renderPaginatedSessions() {
+    const container = document.getElementById('sessions-container');
+    const startIndex = (currentPage - 1) * sessionsPerPage;
+    const endIndex = startIndex + sessionsPerPage;
+    const paginatedSessions = allSessions.slice(startIndex, endIndex);
+    
+    renderSessions(paginatedSessions);
+    renderPaginationControls();
+}
+
+// Render pagination controls
+function renderPaginationControls() {
+    const totalPages = Math.ceil(allSessions.length / sessionsPerPage);
+    const paginationContainer = document.getElementById('pagination-controls');
+    
+    if (allSessions.length <= sessionsPerPage) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+    
+    paginationContainer.innerHTML = `
+        <button class="pagination-btn" onclick="loadSessions(${currentPage - 1})" 
+                ${currentPage === 1 ? 'disabled' : ''}>
+            ← Previous
+        </button>
+        
+        <span class="pagination-info">
+            Page ${currentPage} of ${totalPages} (${allSessions.length} total sessions)
+        </span>
+        
+        <button class="pagination-btn" onclick="loadSessions(${currentPage + 1})" 
+                ${currentPage === totalPages ? 'disabled' : ''}>
+            Next →
+        </button>
+    `;
+}
+
+// Fuction to ender Sessions
+function renderSessions(sessions) {
+    const container = document.getElementById('sessions-container');
+    container.innerHTML = '';
+
+    if (!Array.isArray(sessions)) {
+        console.error('❌ renderSessions expected array but got:', sessions);
+        container.innerHTML = '<p class="error">Invalid session data format</p>';
+        return;
+    }
+
+    if (sessions.length === 0) {
+        if (currentPage > 1) {
+            container.innerHTML = '<p>No more sessions on this page.</p>';
+        } else {
+            container.innerHTML = '<p>No saved sessions yet.</p>';
+        }
+        return;
+    }
+
+    const list = document.createElement('ul');
+    list.className = 'sessions-list';
+
+    sessions.forEach(session => {
+        const item = document.createElement('li');
+        item.className = 'session-item';
+
+        item.innerHTML = `
+            <div class="session-content">
+                <div class="session-topic">${session.title}</div>
+                <div class="session-date">${new Date(session.created_at).toLocaleString()}</div>
+            </div>
+            <div class="session-stats">
+                <div class="session-stat session-questions">
+                    <span class="session-stat-label">Questions:</span>
+                    <span class="session-stat-value">${session.total_questions}</span>
+                </div>
+                <div class="session-stat session-score">
+                    <span class="session-stat-label">Score:</span>
+                    <span class="session-stat-value">${session.score_percentage}%</span>
+                </div>
+            </div>
+            <button class="delete-session-btn" data-id="${session.id}">Delete</button>
+        `;
+
+        list.appendChild(item);
+    });
+
+    container.appendChild(list);
+
+    // Attach delete listeners
+    const deleteButtons = container.querySelectorAll('.delete-session-btn');
+    deleteButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const sessionId = btn.getAttribute('data-id');
+            deleteSession(sessionId);
+        });
+    });
+}
+
+// Filter sessions by search term
+function filterSessions(searchTerm) {
+    if (!searchTerm.trim()) {
+        renderPaginatedSessions();
+        return;
+    }
+    
+    const filtered = allSessions.filter(session => 
+        session.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        session.created_at.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    renderSessions(filtered.slice(0, sessionsPerPage));
+    
+    // Hide pagination when searching
+    document.getElementById('pagination-controls').innerHTML = 
+        filtered.length > 0 ? 
+        `<p>Showing ${filtered.length} matching sessions</p>` : 
+        `<p>No sessions match "${searchTerm}"</p>`;
+}
+
+// Update delete function to refresh pagination
+function deleteSession(sessionId) {
+    if (!confirm("Are you sure you want to delete this session?")) return;
+
+    fetch(`/delete_session/${sessionId}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Reload sessions but stay on current page
+                loadSessions(currentPage);
+            } else {
+                alert('Error deleting session: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting session:', error);
+            alert('Error deleting session');
+        });
+}
+
+// Update DOMContentLoaded to include pagination
+document.addEventListener('DOMContentLoaded', function() {
+    loadSessions(1); // Load first page initially
+});

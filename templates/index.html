@@ -70,6 +70,28 @@
                     </div>
                     <button id="save-btn" disabled>Save Flashcards</button>
                 </section>
+
+                <section class="sessions-section">
+                    <div class="sessions-header">
+                        <h2 class="section-title">
+                            <span class="icon">📚</span>
+                            Your Saved Sessions
+                        </h2>
+                        <div class="sessions-controls">
+                            <input type="text" class="search-sessions" placeholder="Search sessions..." 
+                                oninput="filterSessions(this.value)">
+                        </div>
+                    </div>
+                    
+                    <div id="sessions-container">
+                        <p>No saved sessions yet.</p>
+                    </div>
+                    
+                    <div id="pagination-controls" class="pagination">
+                        <!-- Pagination controls will be rendered here -->
+                    </div>
+                </section>
+
             </div>
         </div>
 
