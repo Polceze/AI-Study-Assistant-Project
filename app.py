@@ -19,7 +19,7 @@ db = Database()
 print("🚀 Starting AI Study Buddy application...")
 db.initialize_database()
 
-def generate_questions_with_gemini(notes, num_questions=3):
+def generate_questions_with_gemini(notes, num_questions=6):
     """
     Generate quiz questions using Google Gemini API
     """
@@ -148,17 +148,17 @@ def get_sample_questions(num_questions):
     """Return sample questions as fallback"""
     sample_questions = [
         {
-            "question": "What is machine learning a subset of?",
+            "question": "What field is machine learning a subset of?",
             "options": ["Data science", "Artificial intelligence", "Computer programming", "Deep learning"],
             "correctAnswer": 1
         },
         {
-            "question": "What does machine learning use to learn for themselves?",
+            "question": "What do machine learning systems use to learn by themselves?",
             "options": ["Algorithms", "Data", "Human teachers", "Trial and error"],
             "correctAnswer": 1
         },
         {
-            "question": "What does the process of learning begin with?",
+            "question": "What does the process of machine learning begin with?",
             "options": ["Testing", "Programming", "Observations or data", "Algorithm design"],
             "correctAnswer": 2
         }
@@ -174,7 +174,7 @@ def generate_questions():
     try:
         data = request.get_json()
         notes = data.get('notes', '')
-        num_questions = min(int(data.get('num_questions', 3)), 9)
+        num_questions = min(int(data.get('num_questions', 6)), 12) # Limit to max 12 questions, default 6
         
         if not notes or not notes.strip():
             return jsonify({"status": "error", "message": "Please provide study notes"}), 400
@@ -279,11 +279,18 @@ def get_flashcards(session_id):
     
 @app.route('/delete_session/<int:session_id>', methods=['DELETE'])
 def delete_session(session_id):
-    success = db.delete_session(session_id)
-    if success:
-        return jsonify({"status": "success", "message": "Session deleted"})
-    else:
-        return jsonify({"status": "error", "message": "Could not delete session"}), 500
+    try:
+        db = Database()
+        success = db.delete_session(session_id)
+        
+        if success:
+            return jsonify({"status": "success", "message": "Session deleted successfully"})
+        else:
+            return jsonify({"status": "error", "message": "Failed to delete session"}), 500
+            
+    except Exception as e:
+        print(f"Error deleting session {session_id}: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/list_sessions', methods=['GET'])
 def list_sessions():
@@ -294,6 +301,25 @@ def list_sessions():
         return jsonify({"status": "success", "sessions": result.get('sessions', [])})
     else:
         return jsonify({"status": "error", "message": result.get('message', 'Unknown error')})
+    
+
+@app.route('/progress-data')
+def progress_data():
+    try:
+        limit = int(request.args.get('limit', 10))  # how many past sessions
+        db = Database()
+        sessions = db.get_sessions(limit=limit)
+
+        # Prepare data for chart.js
+        data = {
+            "labels": [s['created_at'] for s in sessions],
+            "scores": [float(s['score_percentage']) for s in sessions],
+            "questions": [s['total_questions'] for s in sessions]
+        }
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 
 if __name__ == '__main__':
     # Use environment variable for host/port in production

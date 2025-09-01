@@ -1,6 +1,10 @@
 // Application state
 let flashcardsData = [];
 let hasSavedCurrentSet = false;
+let allSessions = [];
+let currentPage = 1;
+const sessionsPerPage = 5;
+let progressChart = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('AI Study Buddy loaded successfully!');
@@ -13,22 +17,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Generate flashcards button
+    // Generate studycards button
     const generateBtn = document.getElementById('generate-btn');
     if (generateBtn) {
         generateBtn.addEventListener('click', generateFlashcards);
     }
     
-    // Save flashcards button
+    // Save studycards button
     const saveBtn = document.getElementById('save-btn');
     if (saveBtn) {
         saveBtn.addEventListener('click', saveFlashcards);
     }
+    
+    // Load sessions with pagination
+    loadSessions(1); // Load first page initially
+    
+    // Add chart range selector event listener if it exists
+    const rangeSelector = document.getElementById('sessions-range');
+    if (rangeSelector) {
+        // Set default value to 5
+        rangeSelector.value = '5';
+        
+        rangeSelector.addEventListener('change', function() {
+            const limit = this.value === 'all' ? allSessions.length : parseInt(this.value);
+            updateProgressChart(allSessions, limit);
+        });
+    }
 });
 
-// Generate flashcards function
+// Generate studycards function
 function generateFlashcards() {
-    // Reset save state when generating new flashcards
+    // Reset save state when generating new studycards
     hasSavedCurrentSet = false;
     
     const notes = document.getElementById('study-notes').value;
@@ -39,7 +58,7 @@ function generateFlashcards() {
         return;
     }
     
-    if (count < 1 || count > 10) {
+    if (count < 1 || count > 13) {
         alert('Please enter a number between 1 and 9 for the number of questions.');
         return;
     }
@@ -74,11 +93,11 @@ function generateFlashcards() {
             
             displayFlashcards();
             
-            // Enable save button for new flashcards
+            // Enable save button for new studycards
             saveBtn.disabled = false;
-            saveBtn.textContent = 'Save Flashcards';
+            saveBtn.textContent = 'Save studycards';
             hasSavedCurrentSet = false;
-            saveBtn.title = 'Save these flashcards to your study history';
+            saveBtn.title = 'Save these studycards to your study history';
             
             // Show AI status message
             const statusMessage = document.getElementById('ai-status');
@@ -111,23 +130,23 @@ function updateSaveButtonState() {
         // Already saved current set - keep disabled
         saveBtn.disabled = true;
         saveBtn.textContent = '✓ Saved';
-        saveBtn.title = 'Flashcards saved! Generate new flashcards to save another set.';
+        saveBtn.title = 'studycards saved! Generate new studycards to save another set.';
     } else if (flashcardsData && flashcardsData.length > 0) {
-        // Have flashcards, check if all are answered
+        // Have studycards, check if all are answered
         const unanswered = flashcardsData.filter(card => 
             card.userAnswer === null || card.userAnswer === undefined
         ).length;
         
         saveBtn.disabled = unanswered > 0;
-        saveBtn.textContent = 'Save Flashcards';
+        saveBtn.textContent = 'Save studycards';
         saveBtn.title = unanswered > 0 ? 
             `Please answer all ${unanswered} questions before saving` : 
-            'Save these flashcards to your study history';
+            'Save these studycards to your study history';
     } else {
-        // No flashcards generated yet
+        // No studycards generated yet
         saveBtn.disabled = true;
-        saveBtn.textContent = 'Save Flashcards';
-        saveBtn.title = 'Generate flashcards first';
+        saveBtn.textContent = 'Save studycards';
+        saveBtn.title = 'Generate studycards first';
     }
 }
 
@@ -166,7 +185,7 @@ function setUniformCardHeights() {
     });
 }
 
-// Display flashcards function
+// Display studycards function
 function displayFlashcards() {
     const flashcardsContainer = document.getElementById('flashcards-container');
     const scoreContainer = document.getElementById('score-container');
@@ -237,20 +256,6 @@ function displayFlashcards() {
     updateSaveButtonState();
 }
 
-// Handle answer selection
-function selectAnswer(cardIndex, optionIndex) {
-    const card = flashcardsData[cardIndex];
-    if (card.answered) return;
-    
-    card.userAnswer = optionIndex;
-    
-    const flashcardEl = document.querySelector(`.flashcard[data-index="${cardIndex}"]`);
-    const optionEls = flashcardEl.querySelectorAll('.option');
-    
-    optionEls.forEach(el => el.classList.remove('selected'));
-    optionEls[optionIndex].classList.add('selected');
-}
-
 // Function whenever answers change
 function selectAnswer(cardIndex, optionIndex) {
     const card = flashcardsData[cardIndex];
@@ -313,18 +318,18 @@ function updateScore() {
     }
 }
 
-// Save flashcards function
+// Save studycards function
 function saveFlashcards() {
     // Prevent saving if already saved
     if (hasSavedCurrentSet) {
-        alert('These flashcards have already been saved. Generate new flashcards to save another set.');
+        alert('These studycards have already been saved. Generate new studycards to save another set.');
         return;
     }
     
     const notes = document.getElementById('study-notes').value;
     
     if (flashcardsData.length === 0) {
-        alert('No flashcards to save! Please generate some flashcards first.');
+        alert('No studycards to save! Please generate some studycards first.');
         return;
     }
     
@@ -362,19 +367,19 @@ function saveFlashcards() {
             hasSavedCurrentSet = true;
             saveBtn.disabled = true;
             saveBtn.textContent = '✓ Saved';
-            saveBtn.title = 'Flashcards saved! Generate new flashcards to save another set.';
+            saveBtn.title = 'studycards saved! Generate new studycards to save another set.';
             
-            alert('Flashcards saved successfully!');
+            alert('studycards saved successfully!');
             console.log('Session ID:', data.session_id);
             
         } else {
-            alert('Error saving flashcards: ' + data.message);
+            alert('Error saving studycards: ' + data.message);
             saveBtn.disabled = false;
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error saving flashcards');
+        alert('Error saving studycards');
         saveBtn.disabled = false;
     })
     .finally(() => {
@@ -384,9 +389,93 @@ function saveFlashcards() {
     });
 }
 
+function initProgressChart() {
+    const ctx = document.getElementById('progress-chart').getContext('2d');
+    
+    // Initial empty chart
+    progressChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Score (%)',
+                    data: [],
+                    borderColor: '#6e8efb',
+                    backgroundColor: 'rgba(110, 142, 251, 0.1)',
+                    yAxisID: 'y',
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Number of Questions',
+                    data: [],
+                    borderColor: '#a777e3',
+                    backgroundColor: 'rgba(167, 119, 227, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Score (%)'
+                    },
+                    min: 0,
+                    max: 100
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Questions'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateProgressChart(sessions, limit = 5) {  // Default is 5
+    if (!progressChart) initProgressChart();
+    
+    // Sort by date descending (most recent first) and take the last 'limit' sessions
+    const sortedSessions = sessions
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))  // ← DESCENDING
+        .slice(0, limit);  // ← Take first 'limit' sessions (most recent)
+    
+    // Reverse for chart to show chronological order left to right
+    const chartSessions = [...sortedSessions].reverse();
+    
+    const labels = chartSessions.map(session => 
+        new Date(session.created_at).toLocaleDateString()
+    );
+    
+    const scores = chartSessions.map(session => session.score_percentage);
+    const questionCounts = chartSessions.map(session => session.total_questions);
+    
+    progressChart.data.labels = labels;
+    progressChart.data.datasets[0].data = scores;
+    progressChart.data.datasets[1].data = questionCounts;
+    progressChart.update();
+}
+
 // Load saved sessions from backend
-// Load saved sessions from backend
-function loadSessions() {
+function loadSessions(page = 1) {
     console.log('🔍 Loading sessions from /list_sessions...');
     
     fetch('/list_sessions')
@@ -401,11 +490,21 @@ function loadSessions() {
             console.log('📊 Sessions data received:', data);
             
             if (data.status === 'success') {
-                console.log(`✅ Found ${data.sessions.length} sessions`);
-                renderSessions(data.sessions);
+                // Store all sessions for pagination AND chart
+                allSessions = data.sessions;
+                console.log(`✅ Found ${allSessions.length} total sessions`);
+                
+                // Render paginated sessions (shows only 5 per page)
+                renderPaginatedSessions();
+                
+                // Update progress chart with ALL sessions data
+                updateProgressChart(allSessions, 5); // Default to last 5 sessions
+
+                // Update summary statistics
+                updateSummaryStats(allSessions);
+                
             } else {
                 console.error('❌ Error loading sessions:', data.message);
-                // Show error message to user
                 const container = document.getElementById('sessions-container');
                 container.innerHTML = `<p class="error">Error loading sessions: ${data.message}</p>`;
             }
@@ -418,121 +517,16 @@ function loadSessions() {
         });
 }
 
-// Render sessions in the UI
-function renderSessions(sessions) {
-    const container = document.getElementById('sessions-container');
-    container.innerHTML = '';
-
-    // Safety check - ensure sessions is an array
-    if (!Array.isArray(sessions)) {
-        console.error('❌ renderSessions expected array but got:', sessions);
-        container.innerHTML = '<p class="error">Invalid session data format</p>';
-        return;
-    }
-
-    if (sessions.length === 0) {
-        container.innerHTML = '<p>No saved sessions yet.</p>';
-        return;
-    }
-
-    const list = document.createElement('ul');
-    list.className = 'sessions-list';
-
-    sessions.forEach(session => {
-        const item = document.createElement('li');
-        item.className = 'session-item';
-
-        item.innerHTML = `
-            <div>
-                <div class="session-topic">${session.title}</div>
-                <div class="session-date">${new Date(session.created_at).toLocaleString()}</div>
-            </div>
-            <span class="session-questions" title="Total questions">${session.total_questions}</span>
-            <span class="session-score" title="Score percentage">${session.score_percentage}%</span>
-            <button class="delete-session-btn" data-id="${session.id}">Delete</button>
-        `;
-
-        list.appendChild(item);
-    });
-
-    container.appendChild(list);
-
-    // Attach delete listeners
-    const deleteButtons = container.querySelectorAll('.delete-session-btn');
-    deleteButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const sessionId = btn.getAttribute('data-id');
-            deleteSession(sessionId);
-        });
-    });
-}
-
-// Delete a session
-function deleteSession(sessionId) {
-    if (!confirm("Are you sure you want to delete this session?")) return;
-
-    fetch(`/delete_session/${sessionId}`, { method: 'DELETE' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                loadSessions(); // refresh after delete
-            } else {
-                alert('Error deleting session: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error deleting session:', error);
-            alert('Error deleting session');
-        });
-}
-
-// Load sessions on page load
-document.addEventListener('DOMContentLoaded', loadSessions);
-
-// Pagination state
-let currentPage = 1;
-const sessionsPerPage = 5;
-let allSessions = [];
-
-// Load saved sessions with pagination
-function loadSessions(page = 1) {
-    console.log('🔍 Loading sessions from /list_sessions...');
-    currentPage = page;
-    
-    fetch('/list_sessions')
-        .then(response => {
-            console.log('📥 Response received, status:', response.status);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('📊 Sessions data received:', data);
-            
-            if (data.status === 'success') {
-                allSessions = data.sessions;
-                console.log(`✅ Found ${allSessions.length} total sessions`);
-                renderPaginatedSessions();
-            } else {
-                console.error('❌ Error loading sessions:', data.message);
-                const container = document.getElementById('sessions-container');
-                container.innerHTML = `<p class="error">Error loading sessions: ${data.message}</p>`;
-            }
-        })
-        .catch(error => {
-            console.error('❌ Error fetching sessions:', error);
-            const container = document.getElementById('sessions-container');
-            container.innerHTML = `<p class="error">Failed to load sessions. Please check console for details.</p>`;
-        });
-}
-
 // Render paginated sessions
 function renderPaginatedSessions() {
-    const container = document.getElementById('sessions-container');
+    // Sort sessions by most recent first
+    const sortedSessions = [...allSessions].sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+    );
+    
     const startIndex = (currentPage - 1) * sessionsPerPage;
     const endIndex = startIndex + sessionsPerPage;
-    const paginatedSessions = allSessions.slice(startIndex, endIndex);
+    const paginatedSessions = sortedSessions.slice(startIndex, endIndex);
     
     renderSessions(paginatedSessions);
     renderPaginationControls();
@@ -549,7 +543,7 @@ function renderPaginationControls() {
     }
     
     paginationContainer.innerHTML = `
-        <button class="pagination-btn" onclick="loadSessions(${currentPage - 1})" 
+        <button class="pagination-btn" onclick="changePage(${currentPage - 1})" 
                 ${currentPage === 1 ? 'disabled' : ''}>
             ← Previous
         </button>
@@ -558,14 +552,42 @@ function renderPaginationControls() {
             Page ${currentPage} of ${totalPages} (${allSessions.length} total sessions)
         </span>
         
-        <button class="pagination-btn" onclick="loadSessions(${currentPage + 1})" 
+        <button class="pagination-btn" onclick="changePage(${currentPage + 1})" 
                 ${currentPage === totalPages ? 'disabled' : ''}>
             Next →
         </button>
     `;
 }
 
-// Fuction to ender Sessions
+// Pagination button to use already-loaded data, doesn't fetch again
+function changePage(page) {
+    if (page < 1 || page > Math.ceil(allSessions.length / sessionsPerPage)) return;
+    currentPage = page;
+    renderPaginatedSessions(); 
+}
+
+// Summary Statistics
+function updateSummaryStats(sessions) {
+    if (sessions.length === 0) {
+        document.getElementById('average-score').textContent = '0%';
+        document.getElementById('total-questions').textContent = '0';
+        document.getElementById('sessions-count').textContent = '0';
+        return;
+    }
+    
+    // Calculate average score
+    const totalScore = sessions.reduce((sum, session) => sum + (session.score_percentage || 0), 0);
+    const averageScore = Math.round(totalScore / sessions.length);
+    
+    // Calculate total questions
+    const totalQuestions = sessions.reduce((sum, session) => sum + (session.total_questions || 0), 0);
+    
+    document.getElementById('average-score').textContent = `${averageScore}%`;
+    document.getElementById('total-questions').textContent = totalQuestions;
+    document.getElementById('sessions-count').textContent = sessions.length;
+}
+
+// Fuction to Render Sessions
 function renderSessions(sessions) {
     const container = document.getElementById('sessions-container');
     container.innerHTML = '';
@@ -647,7 +669,7 @@ function filterSessions(searchTerm) {
         `<p>No sessions match "${searchTerm}"</p>`;
 }
 
-// Update delete function to refresh pagination
+// Delete a session 
 function deleteSession(sessionId) {
     if (!confirm("Are you sure you want to delete this session?")) return;
 
@@ -666,8 +688,3 @@ function deleteSession(sessionId) {
             alert('Error deleting session');
         });
 }
-
-// Update DOMContentLoaded to include pagination
-document.addEventListener('DOMContentLoaded', function() {
-    loadSessions(1); // Load first page initially
-});

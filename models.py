@@ -153,17 +153,19 @@ class Database:
                     SELECT 
                         s.id,
                         s.title,
-                        DATE_FORMAT(s.created_at, '%Y-%m-%dT%H:%i:%s') AS created_at,
+                        s.created_at,  # Keep original for sorting
+                        DATE_FORMAT(s.created_at, '%Y-%m-%dT%H:%i:%s') AS created_at_formatted,
                         COUNT(c.id) AS total_questions,
+                        SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) AS correct_answers,
                         CASE 
                             WHEN COUNT(c.id) > 0 
                             THEN ROUND(SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(c.id), 2) 
-                            ELSE NULL 
+                            ELSE 0 
                         END AS score_percentage
                     FROM study_sessions s
                     LEFT JOIN studycards c ON s.id = c.session_id
                     GROUP BY s.id, s.title, s.created_at
-                    ORDER BY s.created_at DESC
+                    ORDER BY s.created_at DESC  
                 """)
                 sessions = cursor.fetchall()
 
@@ -216,11 +218,31 @@ class Database:
             self.disconnect()
 
     def delete_session(self, session_id):
-        conn = self.get_connection()
+        """Delete a study session and its associated cards"""
+        print(f"🔄 Deleting session {session_id}")
+        connection = self.connect()
+        if connection is None:
+            return False
+        
         try:
-            with conn.cursor() as cursor:
-                cursor.execute("DELETE FROM sessions WHERE id = %s", (session_id,))
-                conn.commit()
-                return True
+            cursor = connection.cursor()
+            
+            # First delete associated studycards (due to foreign key constraint)
+            cursor.execute("DELETE FROM studycards WHERE session_id = %s", (session_id,))
+            print(f"✅ Deleted studycards for session {session_id}")
+            
+            # Then delete the session
+            cursor.execute("DELETE FROM study_sessions WHERE id = %s", (session_id,))
+            connection.commit()
+            
+            print(f"✅ Successfully deleted session {session_id}")
+            return True
+            
+        except Error as e:
+            print(f"❌ Error deleting session {session_id}: {e}")
+            connection.rollback()
+            return False
         finally:
-            conn.close()
+            if connection and connection.is_connected():
+                cursor.close()
+                self.disconnect()

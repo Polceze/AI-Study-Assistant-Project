@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>LearnLab - Study Cards Generator</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </head>
     <body>
         <div class="container">
@@ -19,7 +20,7 @@
                         <span class="icon">📝</span>
                         Your Study Notes
                     </h2>
-                    <textarea id="study-notes" placeholder="Paste your study notes here..."></textarea>
+                    <textarea id="study-notes" placeholder="Paste your study notes here or write a short description of the specific subject you wish to revise for..."></textarea>
                     
                     <!-- <div class="api-key-container">
                         <label for="api-key">Hugging Face API Key (optional for demo):</label>
@@ -34,9 +35,9 @@
                     <div class="settings">
                         <div class="num-questions">
                             <label for="num-questions">Number of Questions:</label>
-                            <input type="number" id="num-questions" min="1" max="9" value="3">
+                            <input type="number" id="num-questions" min="1" max="12" value="6">
                         </div>
-                        <button id="generate-btn">Generate Flashcards</button>
+                        <button id="generate-btn">Generate studycards</button>
                     </div>
                     
                     <div class="loader" id="loader">
@@ -49,13 +50,13 @@
                 <section class="flashcards-section">
                     <h2 class="section-title">
                         <span class="icon">📋</span>
-                        Your Flashcards
+                        Your studycards
                     </h2>
                     <p class="instructions">Select an answer, then click the card to flip and check if you were correct!</p>
                     
                     <div class="flashcards-container" id="flashcards-container">
                         <div class="flashcard-placeholder">
-                            <p>Your flashcards will appear here after generating them from your notes.</p>
+                            <p>Your studycards will appear here after generating them from your notes.</p>
                         </div>
                     </div>
                 </section>
@@ -68,7 +69,43 @@
                     <div class="score" id="score-container">
                         Score: 0/0 (0%)
                     </div>
-                    <button id="save-btn" disabled>Save Flashcards</button>
+                    <button id="save-btn" disabled>Save studycards</button>
+                </section>
+
+                <section class="analytics-section">
+                    <h2 class="section-title">
+                        <span class="icon">📈</span>
+                        Progress Analytics
+                    </h2>
+                    
+                    <div class="stats-summary">
+                        <div class="stat-card">
+                            <span class="stat-value" id="average-score">0%</span>
+                            <span class="stat-label">Average Score</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="total-questions">0</span>
+                            <span class="stat-label">Total Questions</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="sessions-count">0</span>
+                            <span class="stat-label">Study Sessions</span>
+                        </div>
+                    </div>
+
+                    <div class="analytics-controls">
+                        <label for="sessions-range">Show last:</label>
+                        <select id="sessions-range">
+                            <option value="5" selected>5 tests</option>
+                            <option value="10">10 tests</option>
+                            <option value="20">20 tests</option>
+                            <option value="all">All tests</option>
+                        </select>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="progress-chart"></canvas>
+                    </div>
                 </section>
 
                 <section class="sessions-section">
