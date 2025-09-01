@@ -51,9 +51,9 @@ class Database:
             """)
             print("✅ Created study_sessions table")
             
-            # Create flashcards table
+            # Create studycards table
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS flashcards (
+                CREATE TABLE IF NOT EXISTS studycards (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     session_id INT,
                     question TEXT NOT NULL,
@@ -65,7 +65,7 @@ class Database:
                     FOREIGN KEY (session_id) REFERENCES study_sessions(id) ON DELETE CASCADE
                 )
             """)
-            print("✅ Created flashcards table")
+            print("✅ Created studycards table")
             
             connection.commit()
             print("✅ Database tables initialized successfully")
@@ -102,9 +102,9 @@ class Database:
             cursor.close()
             self.disconnect()
     
-    def save_flashcards(self, session_id, flashcards):
-        """Save flashcards for a study session"""
-        print(f"🔄 Saving {len(flashcards)} flashcards for session {session_id}")
+    def save_flashcards(self, session_id, studycards):
+        """Save studycards for a study session"""
+        print(f"🔄 Saving {len(studycards)} studycards for session {session_id}")
         connection = self.connect()
         if connection is None:
             return False
@@ -112,12 +112,12 @@ class Database:
         try:
             cursor = connection.cursor()
             
-            for i, card in enumerate(flashcards):
+            for i, card in enumerate(studycards):
                 user_answer = card.get('userAnswer')
                 is_correct = (user_answer == card['correctAnswer']) if user_answer is not None else None
                 
                 cursor.execute(
-                    """INSERT INTO flashcards 
+                    """INSERT INTO studycards 
                     (session_id, question, options, correct_answer, user_answer, is_correct) 
                     VALUES (%s, %s, %s, %s, %s, %s)""",
                     (
@@ -132,11 +132,11 @@ class Database:
                 print(f"✅ Saved flashcard {i+1}: User answered {user_answer}, Correct: {is_correct}")
             
             connection.commit()
-            print("✅ All flashcards saved successfully")
+            print("✅ All studycards saved successfully")
             return True
             
         except Error as e:
-            print(f"❌ Error saving flashcards: {e}")
+            print(f"❌ Error saving studycards: {e}")
             return False
         finally:
             cursor.close()
@@ -160,7 +160,7 @@ class Database:
             self.disconnect()
     
     def get_flashcards_by_session(self, session_id):
-        """Retrieve flashcards for a specific study session"""
+        """Retrieve studycards for a specific study session"""
         connection = self.connect()
         if connection is None:
             return []
@@ -168,18 +168,18 @@ class Database:
         try:
             cursor = connection.cursor(dictionary=True)
             cursor.execute(
-                "SELECT * FROM flashcards WHERE session_id = %s ORDER BY id",
+                "SELECT * FROM studycards WHERE session_id = %s ORDER BY id",
                 (session_id,)
             )
             
-            flashcards = cursor.fetchall()
-            for card in flashcards:
+            studycards = cursor.fetchall()
+            for card in studycards:
                 card['options'] = json.loads(card['options'])
             
-            return flashcards
+            return studycards
             
         except Error as e:
-            print(f"❌ Error retrieving flashcards: {e}")
+            print(f"❌ Error retrieving studycards: {e}")
             return []
         finally:
             cursor.close()
