@@ -3,14 +3,14 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI Study Buddy - Flashcard Generator</title>
+        <title>LearnLab - Study Cards Generator</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     </head>
     <body>
         <div class="container">
             <header>
-                <h1>AI Study Buddy</h1>
-                <p class="tagline">Generate interactive flashcards from your study notes</p>
+                <h1>LearnLab - AI Study Assistant</h1>
+                <p class="tagline">Generate interactive revision cards from your study notes</p>
             </header>
             
             <div class="app-container">
@@ -21,15 +21,20 @@
                     </h2>
                     <textarea id="study-notes" placeholder="Paste your study notes here..."></textarea>
                     
-                    <div class="api-key-container">
+                    <!-- <div class="api-key-container">
                         <label for="api-key">Hugging Face API Key (optional for demo):</label>
                         <input type="password" id="api-key" class="api-key-input" placeholder="Enter your HF API key if you have one">
+                    </div> -->
+
+                    <!-- Add AI status indicator -->
+                    <div id="ai-status" class="ai-status">
+                        AI status: Ready
                     </div>
                     
                     <div class="settings">
                         <div class="num-questions">
                             <label for="num-questions">Number of Questions:</label>
-                            <input type="number" id="num-questions" min="1" max="5" value="3">
+                            <input type="number" id="num-questions" min="1" max="9" value="3">
                         </div>
                         <button id="generate-btn">Generate Flashcards</button>
                     </div>

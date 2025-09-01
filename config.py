@@ -13,3 +13,7 @@ class Config:
     # Hugging Face API configuration
     HF_API_KEY = os.environ.get('HF_API_KEY') or ''
     HF_API_URL = os.environ.get('HF_API_URL') or 'https://api-inference.huggingface.co/models'
+
+    # Gemini API configuration
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY') or ''
+    GEMINI_API_URL = os.environ.get('GEMINI_API_URL') or 'https://generativelanguage.googleapis.com/v1beta/models'
