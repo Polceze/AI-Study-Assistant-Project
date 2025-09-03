@@ -918,3 +918,117 @@ button .checkmark {
     color: #888;
     margin-top: 20px;
 }
+
+/* Success Modal */
+.success-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1002; /* Higher than auth modal */
+    backdrop-filter: blur(5px);
+}
+
+.success-modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 450px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.success-modal-header {
+    margin-bottom: 20px;
+}
+
+.success-modal-header .success-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.success-modal-header h2 {
+    color: #155724;
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.success-modal-body {
+    margin-bottom: 25px;
+}
+
+.success-modal-body p {
+    color: #333;
+    margin: 8px 0;
+    font-size: 1.1rem;
+}
+
+.success-modal-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.modal-btn {
+    padding: 14px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.modal-btn.primary {
+    background: #28a745;
+    color: white;
+}
+
+.modal-btn.primary:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+.modal-btn.secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.modal-btn.secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+.modal-btn.tertiary {
+    background: #6e8efb;
+    color: white;
+}
+
+.modal-btn.tertiary:hover {
+    background: #5a7df9;
+    transform: translateY(-2px);
+}
+
+/* Responsive design */
+@media (max-width: 500px) {
+    .success-modal-content {
+        padding: 20px;
+        margin: 20px;
+    }
+    
+    .success-modal-header h2 {
+        font-size: 1.3rem;
+    }
+    
+    .modal-btn {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+    }
+}

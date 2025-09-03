@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load sessions with pagination
     loadSessions(1); // Load first page initially
     
-    // Add chart range selector event listener if it exists
+    // Chart range selector event listener
     const rangeSelector = document.getElementById('sessions-range');
     if (rangeSelector) {
         // Set default value to 5
@@ -44,6 +44,67 @@ document.addEventListener('DOMContentLoaded', function() {
             updateProgressChart(allSessions, limit);
         });
     }
+
+    const sameNotesBtn = document.getElementById('new-session-same-notes');
+    const clearNotesBtn = document.getElementById('new-session-clear-notes');
+    
+    if (sameNotesBtn) {
+        sameNotesBtn.addEventListener('click', function() {
+            resetUIForNewSession(false); // Keep notes
+            // Optional: auto-focus on generate button for quick restart
+            document.getElementById('generate-btn').focus();
+        });
+    }
+    
+    if (clearNotesBtn) {
+        clearNotesBtn.addEventListener('click', function() {
+            resetUIForNewSession(true); // Clear notes
+            // Optional: auto-focus on notes textarea for new input
+            document.getElementById('study-notes').focus();
+        });
+    }
+    
+    // Success modal option listeners
+    const continueSameBtn = document.getElementById('continue-same-notes');
+    const startFreshBtn = document.getElementById('start-fresh');
+    const stayInSessionBtn = document.getElementById('stay-in-session');
+    
+    if (continueSameBtn) {
+        continueSameBtn.addEventListener('click', function() {
+            resetUIForNewSession(false); // Keep notes, clear flashcards
+            document.getElementById('generate-btn').focus();
+        });
+    }
+    
+    if (startFreshBtn) {
+        startFreshBtn.addEventListener('click', function() {
+            resetUIForNewSession(true); // Clear everything
+            document.getElementById('study-notes').focus();
+        });
+    }
+    
+    if (stayInSessionBtn) {
+        stayInSessionBtn.addEventListener('click', function() {
+            stayInSession(); // Keep everything exactly as-is
+        });
+    }
+    
+    // Click outside modal to close
+    const successModal = document.getElementById('success-modal');
+    if (successModal) {
+        successModal.addEventListener('click', function(e) {
+            if (e.target === successModal) {
+                hideSuccessModal();
+            }
+        });
+    }
+
+});
+
+// Initialize auth when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // ... your existing initialization code ...
+    initAuth(); // Add this line
 });
 
 // Generate studycards function
@@ -365,18 +426,14 @@ function saveFlashcards() {
     .then(data => {
         if (data.status === 'success') {
             // Mark as saved and update UI
-            hasSavedCurrentSet = true;
-            saveBtn.disabled = true;
-            saveBtn.textContent = '✓ Saved';
-            saveBtn.title = 'session saved! Generate new studycards to start and save another session.';
-            
-            alert('session saved successfully!');
-            console.log('Session ID:', data.session_id);
-            
+            handleSaveSuccess();
+
         } else {
             alert('Error saving session: ' + data.message);
             saveBtn.disabled = false;
         }
+
+    
     })
     .catch(error => {
         console.error('Error:', error);
@@ -484,14 +541,25 @@ function updateProgressChart(sessions, limit = 5) {  // Default is 5
     progressChart.update();
 }
 
-// Load saved sessions from backend
+// Load saved sessions
 function loadSessions(page = 1) {
-    console.log('🔍 Loading sessions from /get_sessions...');
+    console.log('🔍 Loading sessions from /list_sessions...');
+
+    // Check if user is authenticated first
+    if (!currentUser) {
+        console.log('⚠️  User not authenticated, skipping session load');
+        const container = document.getElementById('sessions-container');
+        container.innerHTML = '<p class="no-sessions">Please sign in to view your study sessions</p>';
+        
+        // Clear the chart and stats for logged out users
+        updateProgressChart([], 5);
+        updateSummaryStats([]);
+        return;
+    }
     
-    fetch('/get_sessions')  // Changed from /list_sessions to /get_sessions
+    fetch('/list_sessions')
         .then(response => {
             if (response.status === 401) {
-                // Not authenticated
                 showAuthModal();
                 throw new Error('Authentication required');
             }
@@ -505,16 +573,31 @@ function loadSessions(page = 1) {
             
             if (data.status === 'success') {
                 allSessions = data.sessions;
-                console.log(`✅ Found ${allSessions.length} total sessions`);
+                console.log(`✅ Found ${allSessions.length} total sessions for user`);
+                
+                // Always update summary stats, even if empty
+                updateSummaryStats(allSessions);
+                
+                if (allSessions.length === 0) {
+                    const container = document.getElementById('sessions-container');
+                    container.innerHTML = '<p class="no-sessions">No study sessions yet.</p>';
+                    
+                    // Clear the chart for users with no sessions
+                    updateProgressChart([], 5);
+                    return;
+                }
                 
                 renderPaginatedSessions();
                 updateProgressChart(allSessions, 5);
-                updateSummaryStats(allSessions);
                 
             } else {
                 console.error('❌ Error loading sessions:', data.message);
                 const container = document.getElementById('sessions-container');
                 container.innerHTML = '<p class="no-sessions">No study sessions found yet.</p>';
+                
+                // Clear the chart and stats on error
+                updateProgressChart([], 5);
+                updateSummaryStats([]);
             }
         })
         .catch(error => {
@@ -525,8 +608,13 @@ function loadSessions(page = 1) {
             } else {
                 container.innerHTML = '<p class="no-sessions">Error loading sessions. Please try again.</p>';
             }
+            
+            // Clear the chart and stats on error
+            updateProgressChart([], 5);
+            updateSummaryStats([]);
         });
 }
+
 
 // Render paginated sessions
 function renderPaginatedSessions() {
@@ -579,7 +667,8 @@ function changePage(page) {
 
 // Summary Statistics
 function updateSummaryStats(sessions) {
-    if (sessions.length === 0) {
+    // Ensure sessions is always an array
+    if (!sessions || sessions.length === 0) {
         document.getElementById('average-score').textContent = '0%';
         document.getElementById('total-questions').textContent = '0';
         document.getElementById('sessions-count').textContent = '0';
@@ -777,6 +866,15 @@ function setUserAuthenticated(user) {
     document.body.classList.add('has-topbar');
     localStorage.setItem('userEmail', user.email);
     localStorage.setItem('userId', user.id);
+
+    // Clear the chat area for new users
+    clearChatArea();
+    
+    // Clear old sessions data and reset stats
+    allSessions = [];
+    updateProgressChart(allSessions, 5); // Clear the chart immediately
+    updateSummaryStats(allSessions); // Reset summary stats
+    
     loadSessions(1);
 }
 
@@ -806,24 +904,67 @@ function handleLogin() {
             hideAuthModal();
             localStorage.setItem('userEmail', data.user.email);
             localStorage.setItem('userId', data.user.id);
+            // Button will be re-enabled by enableAppInterface()
         } else {
             alert('Login failed: ' + data.message);
-            resetAuthButton();
+            resetAuthButton(); // Use the reset function
         }
     })
     .catch(error => {
         console.error('Login error:', error);
         alert('Login failed. Please try again.');
-        resetAuthButton();
+        resetAuthButton(); // Use the reset function
     });
 }
 
 function handleLogout() {
-    localStorage.removeItem('userEmail');
-    hideTopBar();
-    showAuthModal();
-    // Clear any user data from UI
-    clearUserData();
+    // Get the submit button and reset it FIRST
+    const submitBtn = document.getElementById('auth-submit');
+    resetAuthButton(); // Reset button state immediately
+    
+    fetch('/auth/logout')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Remove user indicator
+                const indicator = document.getElementById('user-indicator');
+                if (indicator) indicator.remove();
+                
+                // Reset app state
+                currentUser = null;
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('userId');
+                
+                // Clear the chat area (flashcards, notes, score, etc.)
+                clearChatArea();
+                
+                // Clear sessions data, chart, and stats
+                allSessions = [];
+                updateProgressChart(allSessions, 5); // Clear the chart
+                updateSummaryStats(allSessions); // Reset summary stats
+                
+                // Show auth modal and disable interface
+                showAuthModal();
+                disableAppInterface();
+                
+                console.log("✅ User logged out successfully - chat area cleared");
+            }
+        })
+        .catch(error => {
+            console.error('Logout error:', error);
+            // Even if logout fails, reset the UI state
+            resetAuthButton();
+            showAuthModal();
+        });
+}
+
+// Make sure resetAuthButton function exists and works properly
+function resetAuthButton() {
+    const submitBtn = document.getElementById('auth-submit');
+    if (submitBtn) {
+        submitBtn.textContent = 'Continue Studying';
+        submitBtn.disabled = false;
+    }
 }
 
 function showAuthModal() {
@@ -855,8 +996,161 @@ function clearUserData() {
     console.log("User data cleared");
 }
 
-// Initialize auth when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // ... your existing initialization code ...
-    initAuth(); // Add this line
-});
+// Function to reset UI for new session
+function resetUIForNewSession(clearNotes = true) {
+    // Clear flashcards
+    flashcardsData = [];
+    const flashcardsContainer = document.getElementById('flashcards-container');
+    flashcardsContainer.innerHTML = `
+        <div class="flashcard-placeholder">
+            <p>Your studycards will appear here after generating them from your notes.</p>
+        </div>
+    `;
+    
+    // Clear notes if requested
+    if (clearNotes) {
+        document.getElementById('study-notes').value = '';
+    }
+    
+    // Reset score display
+    document.getElementById('score-container').textContent = 'Score: 0/0 (0%)';
+    
+    // Reset save button
+    const saveBtn = document.getElementById('save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Save study session';
+    saveBtn.title = 'Generate studycards first';
+    hasSavedCurrentSet = false;
+    
+    // Hide success modal
+    hideSuccessModal();
+    
+    // Reset AI status if exists
+    const statusMessage = document.getElementById('ai-status');
+    if (statusMessage) {
+        statusMessage.textContent = 'AI status: Ready';
+        statusMessage.className = 'ai-status';
+    }
+    
+    console.log("✅ UI reset for new session");
+}
+
+// The session remains exactly as it was when saved
+function stayInSession() {
+    // Just hide the modal, keep everything as-is
+    hideSuccessModal();
+}
+
+// Function to show success message with options
+function showSaveSuccess() {
+    const successElement = document.getElementById('save-success');
+    successElement.style.display = 'flex';
+    
+    // Scroll to success message after a brief delay
+    setTimeout(() => {
+        successElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+    }, 300);
+}
+
+// Function to handle successful save
+function handleSaveSuccess() {
+    // Clear flashcards but keep notes
+    clearFlashcardsUI();
+    
+    // Update save button state
+    const saveBtn = document.getElementById('save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = '✓ Saved';
+    saveBtn.title = 'Session saved! Start a new session to continue.';
+    hasSavedCurrentSet = true;
+    
+    // Show success modal
+    showSuccessModal();
+    
+    // Reload sessions to update progress
+    loadSessions();
+}
+
+// Helper function to clear flashcards UI only
+function clearFlashcardsUI() {
+    const flashcardsContainer = document.getElementById('flashcards-container');
+    flashcardsContainer.innerHTML = `
+        <div class="flashcard-placeholder">
+            <p>Session saved! Ready for new studycards.</p>
+        </div>
+    `;
+    
+    // Reset score
+    document.getElementById('score-container').textContent = 'Score: 0/0 (0%)';
+}
+
+// Function to show success modal
+function showSuccessModal() {
+    const modal = document.getElementById('success-modal');
+    modal.style.display = 'flex';
+    
+    // Add escape key listener
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape') {
+            hideSuccessModal();
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    
+    document.addEventListener('keydown', escapeHandler);
+}
+
+// Function to hide success modal
+function hideSuccessModal() {
+    const modal = document.getElementById('success-modal');
+    modal.style.display = 'none';
+}
+
+// Function to clear the chat/study area
+function clearChatArea() {
+    // Clear flashcards
+    flashcardsData = [];
+    const flashcardsContainer = document.getElementById('flashcards-container');
+    if (flashcardsContainer) {
+        flashcardsContainer.innerHTML = `
+            <div class="flashcard-placeholder">
+                <p>Your studycards will appear here after generating them from your notes.</p>
+            </div>
+        `;
+    }
+    
+    // Clear notes textarea
+    const notesTextarea = document.getElementById('study-notes');
+    if (notesTextarea) {
+        notesTextarea.value = '';
+    }
+    
+    // Reset score display
+    const scoreContainer = document.getElementById('score-container');
+    if (scoreContainer) {
+        scoreContainer.textContent = 'Score: 0/0 (0%)';
+    }
+    
+    // Reset save button
+    const saveBtn = document.getElementById('save-btn');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Save study session';
+        saveBtn.title = 'Generate studycards first';
+    }
+    
+    // Reset AI status if exists
+    const statusMessage = document.getElementById('ai-status');
+    if (statusMessage) {
+        statusMessage.textContent = 'AI status: Ready';
+        statusMessage.className = 'ai-status';
+    }
+    
+    // Reset session state
+    hasSavedCurrentSet = false;
+    
+    console.log("✅ Chat area cleared");
+}
