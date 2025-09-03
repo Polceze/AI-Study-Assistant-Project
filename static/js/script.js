@@ -5,6 +5,7 @@ let allSessions = [];
 let currentPage = 1;
 const sessionsPerPage = 5;
 let progressChart = null;
+let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('AI Study Buddy loaded successfully!');
@@ -95,9 +96,9 @@ function generateFlashcards() {
             
             // Enable save button for new studycards
             saveBtn.disabled = false;
-            saveBtn.textContent = 'Save studycards';
+            saveBtn.textContent = 'Save study session';
             hasSavedCurrentSet = false;
-            saveBtn.title = 'Save these studycards to your study history';
+            saveBtn.title = 'Save your current session to your study history';
             
             // Show AI status message
             const statusMessage = document.getElementById('ai-status');
@@ -138,14 +139,14 @@ function updateSaveButtonState() {
         ).length;
         
         saveBtn.disabled = unanswered > 0;
-        saveBtn.textContent = 'Save studycards';
+        saveBtn.textContent = 'Save study session';
         saveBtn.title = unanswered > 0 ? 
             `Please answer all ${unanswered} questions before saving` : 
-            'Save these studycards to your study history';
+            'Save your current session to your study history';
     } else {
         // No studycards generated yet
         saveBtn.disabled = true;
-        saveBtn.textContent = 'Save studycards';
+        saveBtn.textContent = 'Save study session';
         saveBtn.title = 'Generate studycards first';
     }
 }
@@ -322,14 +323,14 @@ function updateScore() {
 function saveFlashcards() {
     // Prevent saving if already saved
     if (hasSavedCurrentSet) {
-        alert('These studycards have already been saved. Generate new studycards to save another set.');
+        alert('This session has already been saved. Generate new studycards to start a new session.');
         return;
     }
     
     const notes = document.getElementById('study-notes').value;
     
     if (flashcardsData.length === 0) {
-        alert('No studycards to save! Please generate some studycards first.');
+        alert('No session to save! Please generate some studycards first.');
         return;
     }
     
@@ -367,19 +368,19 @@ function saveFlashcards() {
             hasSavedCurrentSet = true;
             saveBtn.disabled = true;
             saveBtn.textContent = '✓ Saved';
-            saveBtn.title = 'studycards saved! Generate new studycards to save another set.';
+            saveBtn.title = 'session saved! Generate new studycards to start and save another session.';
             
-            alert('studycards saved successfully!');
+            alert('session saved successfully!');
             console.log('Session ID:', data.session_id);
             
         } else {
-            alert('Error saving studycards: ' + data.message);
+            alert('Error saving session: ' + data.message);
             saveBtn.disabled = false;
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error saving studycards');
+        alert('Error saving session');
         saveBtn.disabled = false;
     })
     .finally(() => {
@@ -452,6 +453,15 @@ function initProgressChart() {
 
 function updateProgressChart(sessions, limit = 5) {  // Default is 5
     if (!progressChart) initProgressChart();
+
+    if (!sessions || sessions.length === 0) {
+        // Clear chart if no data
+        progressChart.data.labels = [];
+        progressChart.data.datasets[0].data = [];
+        progressChart.data.datasets[1].data = [];
+        progressChart.update();
+        return;
+    }
     
     // Sort by date descending (most recent first) and take the last 'limit' sessions
     const sortedSessions = sessions
@@ -476,11 +486,15 @@ function updateProgressChart(sessions, limit = 5) {  // Default is 5
 
 // Load saved sessions from backend
 function loadSessions(page = 1) {
-    console.log('🔍 Loading sessions from /list_sessions...');
+    console.log('🔍 Loading sessions from /get_sessions...');
     
-    fetch('/list_sessions')
+    fetch('/get_sessions')  // Changed from /list_sessions to /get_sessions
         .then(response => {
-            console.log('📥 Response received, status:', response.status, response.statusText);
+            if (response.status === 401) {
+                // Not authenticated
+                showAuthModal();
+                throw new Error('Authentication required');
+            }
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -490,30 +504,27 @@ function loadSessions(page = 1) {
             console.log('📊 Sessions data received:', data);
             
             if (data.status === 'success') {
-                // Store all sessions for pagination AND chart
                 allSessions = data.sessions;
                 console.log(`✅ Found ${allSessions.length} total sessions`);
                 
-                // Render paginated sessions (shows only 5 per page)
                 renderPaginatedSessions();
-                
-                // Update progress chart with ALL sessions data
-                updateProgressChart(allSessions, 5); // Default to last 5 sessions
-
-                // Update summary statistics
+                updateProgressChart(allSessions, 5);
                 updateSummaryStats(allSessions);
                 
             } else {
                 console.error('❌ Error loading sessions:', data.message);
                 const container = document.getElementById('sessions-container');
-                container.innerHTML = `<p class="error">Error loading sessions: ${data.message}</p>`;
+                container.innerHTML = '<p class="no-sessions">No study sessions found yet.</p>';
             }
         })
         .catch(error => {
             console.error('❌ Error fetching sessions:', error);
-            // Show error message to user
             const container = document.getElementById('sessions-container');
-            container.innerHTML = `<p class="error">Failed to load sessions. Please check console for details.</p>`;
+            if (error.message.includes('Authentication')) {
+                container.innerHTML = '<p class="no-sessions">Please sign in to view your study sessions</p>';
+            } else {
+                container.innerHTML = '<p class="no-sessions">Error loading sessions. Please try again.</p>';
+            }
         });
 }
 
@@ -688,3 +699,164 @@ function deleteSession(sessionId) {
             alert('Error deleting session');
         });
 }
+
+function attemptAutoLogin(email) {
+    fetch('/auth/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            setUserAuthenticated(data.user);
+            hideAuthModal();
+        } else {
+            showAuthModal();
+        }
+    })
+    .catch(error => {
+        console.error('Auto-login failed:', error);
+        showAuthModal();
+    });
+}
+
+// Check if user was previously authenticated
+function checkSavedAuth() {
+    const savedEmail = localStorage.getItem('userEmail');
+    const savedUserId = localStorage.getItem('userId');
+    
+    if (savedEmail && savedUserId) {
+        // Check if session is still valid
+        fetch('/auth/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.authenticated && data.user) {
+                    setUserAuthenticated(data.user);
+                    hideAuthModal();
+                } else {
+                    // Session expired, try to re-login
+                    attemptAutoLogin(savedEmail);
+                }
+            })
+            .catch(() => {
+                attemptAutoLogin(savedEmail);
+            });
+    } else {
+        showAuthModal();
+    }
+}
+
+// Initialize auth (non-blocking initially)
+function initAuth() {
+    setupAuthEventListeners();
+    checkSavedAuth();
+}
+
+function setupAuthEventListeners() {
+    // Auth submit
+    document.getElementById('auth-submit').addEventListener('click', handleLogin);
+    
+    // Enter key in email field
+    document.getElementById('auth-email').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            handleLogin();
+        }
+    });
+    
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', handleLogout);
+}
+
+function setUserAuthenticated(user) {
+    currentUser = user;
+    document.getElementById('topbar-email').textContent = user.email;
+    document.getElementById('auth-topbar').style.display = 'block';
+    document.body.classList.add('has-topbar');
+    localStorage.setItem('userEmail', user.email);
+    localStorage.setItem('userId', user.id);
+    loadSessions(1);
+}
+
+function handleLogin() {
+    const email = document.getElementById('auth-email').value.trim();
+    
+    if (!email || !email.includes('@')) {
+        alert('Please enter a valid email address');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('auth-submit');
+    submitBtn.textContent = 'Signing in...';
+    submitBtn.disabled = true;
+    
+    fetch('/auth/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            setUserAuthenticated(data.user);
+            hideAuthModal();
+            localStorage.setItem('userEmail', data.user.email);
+            localStorage.setItem('userId', data.user.id);
+        } else {
+            alert('Login failed: ' + data.message);
+            resetAuthButton();
+        }
+    })
+    .catch(error => {
+        console.error('Login error:', error);
+        alert('Login failed. Please try again.');
+        resetAuthButton();
+    });
+}
+
+function handleLogout() {
+    localStorage.removeItem('userEmail');
+    hideTopBar();
+    showAuthModal();
+    // Clear any user data from UI
+    clearUserData();
+}
+
+function showAuthModal() {
+    document.getElementById('auth-modal').style.display = 'flex';
+    // Pre-fill email if available
+    const savedEmail = localStorage.getItem('userEmail');
+    if (savedEmail) {
+        document.getElementById('auth-email').value = savedEmail;
+    }
+}
+
+function hideAuthModal() {
+    document.getElementById('auth-modal').style.display = 'none';
+}
+
+function showTopBar(email) {
+    document.getElementById('topbar-email').textContent = email;
+    document.getElementById('auth-topbar').style.display = 'block';
+    document.body.classList.add('has-topbar');
+}
+
+function hideTopBar() {
+    document.getElementById('auth-topbar').style.display = 'none';
+    document.body.classList.remove('has-topbar');
+}
+
+function clearUserData() {
+    // Will be implemented in later phases
+    console.log("User data cleared");
+}
+
+// Initialize auth when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // ... your existing initialization code ...
+    initAuth(); // Add this line
+});

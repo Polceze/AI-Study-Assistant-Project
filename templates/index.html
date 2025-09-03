@@ -8,6 +8,32 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </head>
     <body>
+        <!-- Auth Top Bar -->
+        <div id="auth-topbar" class="auth-topbar" style="display: none;">
+            <div class="container">
+                <div class="auth-topbar-content">
+                    <span class="user-email" id="topbar-email">Not signed in</span>
+                    <button id="logout-btn" class="logout-btn">Sign Out</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Modal -->
+        <div id="auth-modal" class="auth-modal" style="display: none;">
+            <div class="auth-modal-content">
+                <div class="auth-modal-header">
+                    <h2>Welcome to LearnLab</h2>
+                    <p>Enter your email to start studying</p>
+                </div>
+                <div class="auth-modal-body">
+                    <input type="email" id="auth-email" placeholder="your.email@example.com" autocomplete="email">
+                    <button id="auth-submit">Continue Studying</button>
+                </div>
+                <div class="auth-modal-footer">
+                    <p>No password needed • Your data stays private</p>
+                </div>
+            </div>
+        </div>
         <div class="container">
             <header>
                 <h1>LearnLab - AI Study Assistant</h1>
@@ -20,7 +46,7 @@
                         <span class="icon">📝</span>
                         Your Study Notes
                     </h2>
-                    <textarea id="study-notes" placeholder="Paste your study notes here or write a short description of the specific subject you wish to revise for..."></textarea>
+                    <textarea id="study-notes" placeholder="Paste your study notes here, or a description of a topic, or feel free to type anything!"></textarea>
                     
                     <!-- <div class="api-key-container">
                         <label for="api-key">Hugging Face API Key (optional for demo):</label>
@@ -52,7 +78,7 @@
                         <span class="icon">📋</span>
                         Your studycards
                     </h2>
-                    <p class="instructions">Select an answer, then click the card to flip and check if you were correct!</p>
+                    <!-- <p class="instructions">Select an answer, then click the card to flip and check if you were correct!</p> -->
                     
                     <div class="flashcards-container" id="flashcards-container">
                         <div class="flashcard-placeholder">
@@ -69,7 +95,7 @@
                     <div class="score" id="score-container">
                         Score: 0/0 (0%)
                     </div>
-                    <button id="save-btn" disabled>Save studycards</button>
+                    <button id="save-btn" disabled>Save study session</button>
                 </section>
 
                 <section class="analytics-section">

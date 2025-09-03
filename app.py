@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import os
 from dotenv import load_dotenv
 from models import Database
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 import json
+import uuid
 import re
 
 load_dotenv()
@@ -144,6 +145,7 @@ def generate_questions_with_gemini(notes, num_questions=6):
         traceback.print_exc()
         return None, "error"
 
+
 def get_sample_questions(num_questions):
     """Return sample questions as fallback"""
     sample_questions = [
@@ -164,10 +166,12 @@ def get_sample_questions(num_questions):
         }
     ]
     return sample_questions[:num_questions]
-    
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/generate_questions', methods=['POST'])
 def generate_questions():
@@ -235,8 +239,15 @@ def save_flashcards():
                 "unanswered": unanswered
             }), 400
         
+        # Get user_id from session (now properly set by auth)
+        user_id = session.get('user_id')
+        print(f"💾 Saving for user ID: {user_id}")
+        
+        if not user_id:
+            return jsonify({"status": "error", "message": "Authentication required"}), 401
+        
         # Create study session
-        session_id = db.create_study_session(title, notes)
+        session_id = db.create_study_session(title, notes, user_id)
         
         if not session_id:
             return jsonify({"status": "error", "message": "Failed to create study session"}), 500
@@ -253,19 +264,30 @@ def save_flashcards():
         
     except Exception as e:
         print(f"❌ Exception in save_flashcards: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/get_sessions', methods=['GET'])
+def get_sessions_route():
+    """Get all study sessions for current user"""
+    try:
+        user_id = session.get('user_id')
+        print(f"🔍 DEBUG: User ID from session: {user_id}")
+        
+        if not user_id:
+            print("❌ DEBUG: No user_id in session - authentication required")
+            return jsonify({"status": "error", "message": "Authentication required"}), 401
+            
+        result = db.get_sessions(user_id)
+        print(f"🔍 DEBUG: Database result: {result}")
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"❌ Error in get_sessions: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/get_sessions', methods=['GET'])
-def get_sessions():
-    """Get all study sessions"""
-    try:
-        sessions = db.get_study_sessions()
-        return jsonify({"status": "success", "sessions": sessions})
-    except Exception as e:
-        print(f"❌ Error in get_sessions: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/get_flashcards/<int:session_id>', methods=['GET'])
 def get_flashcards(session_id):
@@ -276,7 +298,8 @@ def get_flashcards(session_id):
     except Exception as e:
         print(f"❌ Error in get_flashcards: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-    
+
+
 @app.route('/delete_session/<int:session_id>', methods=['DELETE'])
 def delete_session(session_id):
     try:
@@ -292,34 +315,132 @@ def delete_session(session_id):
         print(f"Error deleting session {session_id}: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
 @app.route('/list_sessions', methods=['GET'])
 def list_sessions():
-    result = db.get_sessions()
-    print("DEBUG result:", result)
-    
-    if result.get('status') == 'success':
-        return jsonify({"status": "success", "sessions": result.get('sessions', [])})
-    else:
-        return jsonify({"status": "error", "message": result.get('message', 'Unknown error')})
+    """Get sessions list for current user"""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"status": "error", "message": "Authentication required"}), 401
+            
+        result = db.get_sessions(user_id)
+        print("DEBUG result:", result)
+        
+        if result.get('status') == 'success':
+            return jsonify({"status": "success", "sessions": result.get('sessions', [])})
+        else:
+            return jsonify({"status": "error", "message": result.get('message', 'Unknown error')})
+    except Exception as e:
+        print(f"❌ Error in list_sessions: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
     
 
 @app.route('/progress-data')
 def progress_data():
     try:
-        limit = int(request.args.get('limit', 10))  # how many past sessions
-        db = Database()
-        sessions = db.get_sessions(limit=limit)
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"error": "Authentication required"}), 401
+            
+        limit = int(request.args.get('limit', 10))
+        result = db.get_sessions(user_id)
+        
+        if result.get('status') == 'success':
+            sessions = result.get('sessions', [])
+            # Prepare data for chart.js
+            data = {
+                "labels": [s['created_at_formatted'] for s in sessions[:limit]],
+                "scores": [float(s['score_percentage']) for s in sessions[:limit]],
+                "questions": [s['total_questions'] for s in sessions[:limit]]
+            }
+            return jsonify(data)
+        else:
+            return jsonify({"error": result.get('message', 'Unknown error')})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
-        # Prepare data for chart.js
+
+@app.route('/auth/login', methods=['POST'])
+def auth_login():
+    """Handle email-only login"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+        
+        # Basic email validation
+        if not email or not re.match(r'[^@]+@[^@]+\.[^@]+', email):
+            return jsonify({"status": "error", "message": "Please enter a valid email address"}), 400
+        
+        # Get or create user in database
+        user = db.get_or_create_user(email)
+        if not user:
+            return jsonify({"status": "error", "message": "Failed to create user account"}), 500
+        
+        # Set user session
+        session['user_id'] = user['id']
+        session['user_email'] = user['email']
+        
+        print(f"✅ User logged in: {user['email']} (ID: {user['id']})")
+        
+        return jsonify({
+            "status": "success", 
+            "message": "Login successful",
+            "user": {
+                "id": user['id'],
+                "email": user['email']
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ Login error: {e}")
+        return jsonify({"status": "error", "message": "Login failed. Please try again."}), 500
+
+
+@app.route('/auth/logout')
+def auth_logout():
+    """Log out user"""
+    user_email = session.get('user_email', 'Unknown')
+    session.pop('user_id', None)
+    session.pop('user_email', None)
+    print(f"✅ User logged out: {user_email}")
+    return jsonify({"status": "success", "message": "Logged out successfully"})
+
+
+@app.route('/auth/status')
+def auth_status():
+    """Check authentication status"""
+    user_id = session.get('user_id')
+    user_email = session.get('user_email')
+    
+    return jsonify({
+        "status": "success",
+        "authenticated": user_id is not None,
+        "user": {
+            "id": user_id,
+            "email": user_email
+        } if user_id else None
+    })
+
+@app.route('/chart-data')
+def chart_data():
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"error": "Authentication required"}), 401
+            
+        limit = int(request.args.get('limit', 5))
+        sessions = db.get_sessions_for_chart(user_id, limit)
+        
         data = {
-            "labels": [s['created_at'] for s in sessions],
+            "labels": [s['created_at_formatted'] for s in sessions],
             "scores": [float(s['score_percentage']) for s in sessions],
             "questions": [s['total_questions'] for s in sessions]
         }
         return jsonify(data)
+        
     except Exception as e:
         return jsonify({"error": str(e)})
-
 
 if __name__ == '__main__':
     # Use environment variable for host/port in production
