@@ -1,4 +1,5 @@
 import mysql.connector
+from mysql.connector.pooling import MySQLConnectionPool
 from mysql.connector import Error
 from config import Config
 import json
@@ -12,22 +13,30 @@ class Database:
             'user': Config.DB_USER,
             'password': Config.DB_PASSWORD
         }
+        # Initialize connection pool
+        self.pool = MySQLConnectionPool(
+            pool_name="learnlab_pool",
+            pool_size=10,  # Adjust based on expected load (5-10 is typical for small apps)
+            pool_reset_session=True,
+            **self.config
+        )
         self.connection = None
     
     def connect(self):
-        """Establish database connection"""
+        """Get a connection from the pool"""
         try:
-            self.connection = mysql.connector.connect(**self.config)
-            print("✅ Successfully connected to MySQL database")
+            self.connection = self.pool.get_connection()
+            print("✅ Successfully retrieved connection from pool")
             return self.connection
         except Error as e:
-            print(f"❌ Error connecting to MySQL: {e}")
+            print(f"❌ Error retrieving connection from pool: {e}")
             return None
     
     def disconnect(self):
-        """Close database connection"""
+        """Return connection to pool"""
         if self.connection and self.connection.is_connected():
-            self.connection.close()
+            self.connection.close()  # Returns connection to pool
+            print("✅ Connection returned to pool")
     
     def initialize_database(self):
         """Create necessary tables if they don't exist"""

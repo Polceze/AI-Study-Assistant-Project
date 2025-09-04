@@ -7,6 +7,20 @@ const sessionsPerPage = 5;
 let progressChart = null;
 let currentUser = null;
 
+// function to limit how often setUniformCardHeights runs during resizing
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     console.log('AI Study Buddy loaded successfully!');
     
@@ -23,6 +37,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (generateBtn) {
         generateBtn.addEventListener('click', generateFlashcards);
     }
+
+    // Resize event listener for flashcard heights
+    window.addEventListener('resize', debounce(setUniformCardHeights, 200));
     
     // Save studycards button
     const saveBtn = document.getElementById('save-btn');
@@ -51,7 +68,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (sameNotesBtn) {
         sameNotesBtn.addEventListener('click', function() {
             resetUIForNewSession(false); // Keep notes
-            // Optional: auto-focus on generate button for quick restart
             document.getElementById('generate-btn').focus();
         });
     }
@@ -59,7 +75,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (clearNotesBtn) {
         clearNotesBtn.addEventListener('click', function() {
             resetUIForNewSession(true); // Clear notes
-            // Optional: auto-focus on notes textarea for new input
             document.getElementById('study-notes').focus();
         });
     }
@@ -67,44 +82,38 @@ document.addEventListener('DOMContentLoaded', function() {
     // Success modal option listeners
     const continueSameBtn = document.getElementById('continue-same-notes');
     const startFreshBtn = document.getElementById('start-fresh');
-    const stayInSessionBtn = document.getElementById('stay-in-session');
+    const stayInSessionBtn = document.getElementById('view-progress');
     
     if (continueSameBtn) {
-        continueSameBtn.addEventListener('click', function() {
-            resetUIForNewSession(false); // Keep notes, clear flashcards
+        continueSameBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            console.log('Continue with Same Notes clicked');
+            clearFlashcardsUI(); // Clear flashcards for new session
+            resetUIForNewSession(false); // Keep notes
             document.getElementById('generate-btn').focus();
         });
     }
     
     if (startFreshBtn) {
-        startFreshBtn.addEventListener('click', function() {
-            resetUIForNewSession(true); // Clear everything
+        startFreshBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            console.log('Start Fresh clicked');
+            clearFlashcardsUI(); // Clear flashcards for new session
+            resetUIForNewSession(true); // Clear notes
             document.getElementById('study-notes').focus();
         });
     }
     
     if (stayInSessionBtn) {
-        stayInSessionBtn.addEventListener('click', function() {
-            stayInSession(); // Keep everything exactly as-is
-        });
-    }
-    
-    // Click outside modal to close
-    const successModal = document.getElementById('success-modal');
-    if (successModal) {
-        successModal.addEventListener('click', function(e) {
-            if (e.target === successModal) {
-                hideSuccessModal();
-            }
+        stayInSessionBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            console.log('Stay in This Session clicked');
+            stayInSession(); // Only hide modal, preserve all UI
         });
     }
 
-});
-
-// Initialize auth when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // ... your existing initialization code ...
-    initAuth(); // Add this line
+    // Initialize auth
+    initAuth();
 });
 
 // Generate studycards function
@@ -215,9 +224,15 @@ function updateSaveButtonState() {
 // Function to set uniform card heights
 function setUniformCardHeights() {
     const flashcards = document.querySelectorAll('.flashcard');
+    if (flashcards.length === 0) {
+        console.log('No flashcards to resize');
+        return;
+    }
+    
+    console.log('Adjusting flashcard heights');
     let maxHeight = 0;
     
-    // First reset heights to auto to get accurate measurements
+    // Reset heights to auto to get accurate measurements
     flashcards.forEach(card => {
         card.style.height = 'auto';
     });
@@ -238,13 +253,14 @@ function setUniformCardHeights() {
         }
     });
     
-    // Add some padding to the max height
+    // Add padding to the max height
     maxHeight += 20;
     
     // Apply the maximum height to all cards
     flashcards.forEach(card => {
         card.style.height = `${maxHeight}px`;
     });
+    console.log(`Set uniform height to ${maxHeight}px for ${flashcards.length} flashcards`);
 }
 
 // Display studycards function
@@ -314,9 +330,11 @@ function displayFlashcards() {
             this.classList.toggle('flipped');
         });
     });
-    setTimeout(setUniformCardHeights, 100);
+    
+    setUniformCardHeights(); // Call directly instead of timeout
     updateSaveButtonState();
 }
+
 
 // Function whenever answers change
 function selectAnswer(cardIndex, optionIndex) {
@@ -1035,10 +1053,17 @@ function resetUIForNewSession(clearNotes = true) {
     console.log("✅ UI reset for new session");
 }
 
-// The session remains exactly as it was when saved
+// Function to just hide the modal and keep everything as-is
 function stayInSession() {
-    // Just hide the modal, keep everything as-is
-    hideSuccessModal();
+    const successModal = document.getElementById('success-modal');
+    if (successModal) {
+        successModal.style.display = 'none';
+    }
+    console.log("✅ Staying in current session - all content preserved");
+    console.log('Current flashcards:', flashcardsData);
+    console.log('Current notes:', document.getElementById('study-notes').value);
+    console.log('Score:', document.getElementById('score-container').textContent);
+    console.log('Save button state:', document.getElementById('save-btn').textContent);
 }
 
 // Function to show success message with options
@@ -1057,9 +1082,6 @@ function showSaveSuccess() {
 
 // Function to handle successful save
 function handleSaveSuccess() {
-    // Clear flashcards but keep notes
-    clearFlashcardsUI();
-    
     // Update save button state
     const saveBtn = document.getElementById('save-btn');
     saveBtn.disabled = true;
