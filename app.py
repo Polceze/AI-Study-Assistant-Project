@@ -7,6 +7,7 @@ import requests
 import json
 import uuid
 import re
+from cachetools import TTLCache
 
 load_dotenv()
 
@@ -20,6 +21,48 @@ db = Database()
 print("🚀 Starting AI Study Buddy application...")
 db.initialize_database()
 
+session_cache = TTLCache(maxsize=100, ttl=60)  # 60-second TTL, max 100 users
+
+def get_user_sessions(user_id):
+    """Get sessions from cache or database """
+    cache_key = f"sessions_{user_id}"
+    
+    # Check cache first (TTLCache handles expiration automatically)
+    try:
+        if cache_key in session_cache:
+            print(f"✅ Cache hit for user {user_id}")
+            return session_cache[cache_key]
+    except Exception as e:
+        print(f"❌ Cache error: {e}")
+    
+    # If not in cache or expired, fetch from database
+    print(f"🔍 Cache miss - fetching from database for user {user_id}")
+    result = db.get_sessions(user_id)
+    
+    # Extract sessions data based on your database structure
+    sessions = result.get('sessions', []) if isinstance(result, dict) and result.get('status') == 'success' else []
+    
+    # Store in cache (TTLCache will auto-expire after ttl seconds)
+    try:
+        session_cache[cache_key] = sessions
+        print(f"💾 Cached sessions for user {user_id} (TTL: {session_cache.ttl}s)")
+    except Exception as e:
+        print(f"❌ Cache set error: {e}")
+    
+    return sessions
+
+
+def invalidate_user_cache(user_id):
+    """Invalidate cache for a user's sessions"""
+    cache_key = f"sessions_{user_id}"
+    try:
+        if cache_key in session_cache:
+            del session_cache[cache_key]
+            print(f"🗑️ Cache invalidated for user_id={user_id}")
+    except Exception as e:
+        print(f"❌ Cache invalidate error: {e}")
+
+
 def generate_questions_with_gemini(notes, num_questions=6):
     """
     Generate quiz questions using Google Gemini API
@@ -32,11 +75,11 @@ def generate_questions_with_gemini(notes, num_questions=6):
     try:
         # Try multiple endpoint formats - one of these should work
         endpoints = [
-            f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}",                        
+            # Primary: Latest and most capable model
             f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={api_key}",
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}",            
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={api_key}",
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+            
+            # Fallback: Stable production model  
+            f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}"
         ]
         
         prompt = f"""
@@ -67,7 +110,8 @@ def generate_questions_with_gemini(notes, num_questions=6):
             }],
             "generationConfig": {
                 "temperature": 0.7,
-                "maxOutputTokens": 2000
+                "maxOutputTokens": 2000,
+                "response_mime_type": "application/json"  # ← The game-changer
             }
         }
         
@@ -267,6 +311,7 @@ def save_flashcards():
         
         # Save flashcards
         if db.save_flashcards(session_id, flashcards):
+            invalidate_user_cache(user_id)  # Invalidate cache after saving
             return jsonify({
                 "status": "success", 
                 "message": "Flashcards saved successfully",
@@ -282,7 +327,7 @@ def save_flashcards():
 
 @app.route('/get_sessions', methods=['GET'])
 def get_sessions_route():
-    """Get all study sessions for current user"""
+    """Get all study sessions for current user - UPDATED WITH CACHING"""
     try:
         user_id = session.get('user_id')
         print(f"🔍 DEBUG: User ID from session: {user_id}")
@@ -291,9 +336,9 @@ def get_sessions_route():
             print("❌ DEBUG: No user_id in session - authentication required")
             return jsonify({"status": "error", "message": "Authentication required"}), 401
             
-        result = db.get_sessions(user_id)
-                
-        return jsonify(result)
+        sessions = get_user_sessions(user_id)  # Use cached version
+        return jsonify({"status": "success", "sessions": sessions})
+        
     except Exception as e:
         print(f"❌ Error in get_sessions: {e}")
         import traceback
@@ -315,10 +360,12 @@ def get_flashcards(session_id):
 @app.route('/delete_session/<int:session_id>', methods=['DELETE'])
 def delete_session(session_id):
     try:
-        db = Database()
-        success = db.delete_session(session_id)
-        
-        if success:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"status": "error", "message": "Authentication required"}), 401
+            
+        if db.delete_session(session_id):
+            invalidate_user_cache(user_id)  # Invalidate cache after deletion
             return jsonify({"status": "success", "message": "Session deleted successfully"})
         else:
             return jsonify({"status": "error", "message": "Failed to delete session"}), 500
@@ -330,18 +377,15 @@ def delete_session(session_id):
 
 @app.route('/list_sessions', methods=['GET'])
 def list_sessions():
-    """Get sessions list for current user"""
+    """Get sessions list for current user - UPDATED WITH CACHING"""
     try:
         user_id = session.get('user_id')
         if not user_id:
             return jsonify({"status": "error", "message": "Authentication required"}), 401
             
-        result = db.get_sessions(user_id)
-                
-        if result.get('status') == 'success':
-            return jsonify({"status": "success", "sessions": result.get('sessions', [])})
-        else:
-            return jsonify({"status": "error", "message": result.get('message', 'Unknown error')})
+        sessions = get_user_sessions(user_id)  # Use cached version
+        return jsonify({"status": "success", "sessions": sessions})
+        
     except Exception as e:
         print(f"❌ Error in list_sessions: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -354,20 +398,16 @@ def progress_data():
         if not user_id:
             return jsonify({"error": "Authentication required"}), 401
             
-        limit = int(request.args.get('limit', 10))
-        result = db.get_sessions(user_id)
+        sessions = get_user_sessions(user_id)  # Use cached version
         
-        if result.get('status') == 'success':
-            sessions = result.get('sessions', [])
-            # Prepare data for chart.js
-            data = {
-                "labels": [s['created_at_formatted'] for s in sessions[:limit]],
-                "scores": [float(s['score_percentage']) for s in sessions[:limit]],
-                "questions": [s['total_questions'] for s in sessions[:limit]]
-            }
-            return jsonify(data)
-        else:
-            return jsonify({"error": result.get('message', 'Unknown error')})
+        # Prepare data for chart.js
+        data = {
+            "labels": [s['created_at_formatted'] for s in sessions[:10]],
+            "scores": [float(s['score_percentage']) for s in sessions[:10]],
+            "questions": [s['total_questions'] for s in sessions[:10]]
+        }
+        return jsonify(data)
+        
     except Exception as e:
         return jsonify({"error": str(e)})
 
@@ -410,8 +450,13 @@ def auth_login():
 
 @app.route('/auth/logout')
 def auth_logout():
-    """Log out user"""
+    """Log out user - UPDATED WITH CACHE INVALIDATION"""
+    user_id = session.get('user_id')
     user_email = session.get('user_email', 'Unknown')
+    
+    if user_id:
+        invalidate_user_cache(user_id)  # Invalidate cache on logout
+        
     session.pop('user_id', None)
     session.pop('user_email', None)
     print(f"✅ User logged out: {user_email}")

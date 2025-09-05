@@ -735,7 +735,8 @@ function renderSessions(sessions) {
         item.innerHTML = `
             <div class="session-content">
                 <div class="session-topic">${session.title}</div>
-                <div class="session-date">${new Date(session.created_at).toLocaleString()}</div>
+                <!-- REMOVE the session-date line below -->
+                <!-- <div class="session-date">${new Date(session.created_at).toLocaleString()}</div> -->
             </div>
             <div class="session-stats">
                 <div class="session-stat session-questions">
@@ -884,6 +885,9 @@ function setUserAuthenticated(user) {
     document.body.classList.add('has-topbar');
     localStorage.setItem('userEmail', user.email);
     localStorage.setItem('userId', user.id);
+
+    // Reset to page 1 when user authenticates
+    currentPage = 1;
 
     // Clear the chat area for new users
     clearChatArea();

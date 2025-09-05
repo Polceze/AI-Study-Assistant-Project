@@ -270,6 +270,7 @@ class Database:
             if connection and connection.is_connected():
                 connection.close()
 
+
     def get_or_create_user(self, email):
         """Get user by email, create if not exists"""
         connection = self.connect()
