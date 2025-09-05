@@ -114,6 +114,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize auth
     initAuth();
+
+    // Add event listener for the modal's close button
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    if (modalCloseBtn) {
+        modalCloseBtn.addEventListener('click', closeSessionModal);
+    }
+
+    // Add event listener for the modal's delete button (basic version for Phase 2)
+    const modalDeleteBtn = document.getElementById('modal-delete-session-btn');
+    if (modalDeleteBtn) {
+        modalDeleteBtn.addEventListener('click', function() {
+            const sessionId = this.getAttribute('data-session-id');
+            if (!sessionId) {
+                alert("No session selected for deletion");
+                return;
+            }
+            
+            // Show confirmation dialog (as requested)
+            const confirmDelete = confirm("Are you sure you want to delete this session?\nThis action cannot be undone.");
+            
+            if (confirmDelete) {
+                deleteSessionFromModal(sessionId);
+            }
+        });
+    }
+});
+
+// Delegate click events for dynamically created "View" buttons
+document.addEventListener('click', function(e) {
+    // Check if a "View" button was clicked
+    if (e.target.classList.contains('view-session-btn')) {
+        const sessionId = e.target.getAttribute('data-id');
+        openSessionModal(sessionId);
+    }
 });
 
 // Generate studycards function
@@ -748,7 +782,10 @@ function renderSessions(sessions) {
                     <span class="session-stat-value">${session.score_percentage}%</span>
                 </div>
             </div>
-            <button class="delete-session-btn" data-id="${session.id}">Delete</button>
+            <div class="session-actions">
+                <button class="view-session-btn" data-id="${session.id}">View</button>
+                <button class="delete-session-btn" data-id="${session.id}">Delete</button>
+            </div>
         `;
 
         list.appendChild(item);
@@ -790,7 +827,7 @@ function filterSessions(searchTerm) {
 
 // Delete a session 
 function deleteSession(sessionId) {
-    if (!confirm("Are you sure you want to delete this session?")) return;
+    if (!confirm("Are you sure you want to delete this session?\nThis action cannot be undone.")) return;
 
     fetch(`/delete_session/${sessionId}`, { method: 'DELETE' })
         .then(response => response.json())
@@ -798,6 +835,7 @@ function deleteSession(sessionId) {
             if (data.status === 'success') {
                 // Reload sessions but stay on current page
                 loadSessions(currentPage);
+                showTempMessage("Session deleted successfully", "success");
             } else {
                 alert('Error deleting session: ' + data.message);
             }
@@ -1179,4 +1217,184 @@ function clearChatArea() {
     hasSavedCurrentSet = false;
     
     console.log("✅ Chat area cleared");
+}
+
+// Function to open the session detail modal
+// Function to open the session detail modal
+function openSessionModal(sessionId) {
+    console.log("Opening modal for session:", sessionId);
+    const modal = document.getElementById('session-detail-modal');
+    
+    // Show loading state
+    document.getElementById('session-modal-title').textContent = 'Loading...';
+    document.getElementById('session-modal-date').textContent = 'Created: Loading...';
+    document.getElementById('session-modal-score').textContent = 'Score: Loading...';
+    document.getElementById('session-questions-container').innerHTML = '<div class="question-placeholder">Loading session details...</div>';
+    
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // Fetch session data
+    fetch(`/get_flashcards/${sessionId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                populateSessionModal(sessionId, data.flashcards);
+            } else {
+                throw new Error(data.message || 'Failed to load session data');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching session data:', error);
+            document.getElementById('session-questions-container').innerHTML = `
+                <div class="error-message">
+                    <p>Error loading session details: ${error.message}</p>
+                    <button onclick="closeSessionModal()" class="modal-btn secondary">Close</button>
+                </div>
+            `;
+        });
+}
+
+// Function to close the session detail modal
+function closeSessionModal() {
+    console.log("Closing session modal");
+    const modal = document.getElementById('session-detail-modal');
+    modal.style.display = 'none';
+    
+    // Re-enable background scrolling
+    document.body.style.overflow = 'auto';
+
+    // Clear the session ID from delete button (NEW LINE FOR PHASE 4)
+    document.getElementById('modal-delete-session-btn').removeAttribute('data-session-id');
+}
+
+// Function to populate the modal with session data
+function populateSessionModal(sessionId, flashcards) {
+    console.log("Populating modal with", flashcards.length, "flashcards");
+    
+    // Calculate score
+    const totalQuestions = flashcards.length;
+    const correctAnswers = flashcards.filter(card => card.is_correct).length;
+    const scorePercentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+    
+    // Find the session in our loaded sessions to get metadata
+    const session = allSessions.find(s => s.id == sessionId);
+    
+    // Update modal header and metadata
+    document.getElementById('session-modal-title').textContent = session ? session.title : `Session ${sessionId}`;
+    document.getElementById('session-modal-date').textContent = session ? `Created: ${new Date(session.created_at).toLocaleString()}` : 'Created: Unknown';
+    document.getElementById('session-modal-score').textContent = `Score: ${scorePercentage}% (${correctAnswers}/${totalQuestions})`;
+    
+    // Generate questions HTML
+    const questionsHTML = generateQuestionsHTML(flashcards);
+    document.getElementById('session-questions-container').innerHTML = questionsHTML;
+    
+    // Store the session ID on the delete button
+    const deleteBtn = document.getElementById('modal-delete-session-btn');
+    deleteBtn.setAttribute('data-session-id', sessionId);
+    
+    // Ensure delete button is reset to normal state
+    deleteBtn.textContent = 'Delete Session';
+    deleteBtn.disabled = false;
+}
+
+// Function to generate HTML for all questions in a session
+function generateQuestionsHTML(flashcards) {
+    if (!flashcards || flashcards.length === 0) {
+        return '<div class="no-questions-message">No questions found in this session.</div>';
+    }
+    
+    return flashcards.map((card, index) => {
+        const userAnswer = card.user_answer;
+        const correctAnswer = card.correct_answer;
+        const isCorrect = userAnswer === correctAnswer;
+        
+        return `
+            <div class="session-question">
+                <div class="session-question-text">${index + 1}. ${card.question}</div>
+                <div class="session-options">
+                    ${card.options.map((option, optIndex) => {
+                        const isUserAnswer = optIndex === userAnswer;
+                        const isCorrectAnswer = optIndex === correctAnswer;
+                        
+                        let optionClass = 'session-option';
+                        if (isUserAnswer) optionClass += isCorrect ? ' correct' : ' incorrect';
+                        if (isCorrectAnswer && !isUserAnswer) optionClass += ' correct';
+                        
+                        let indicator = '';
+                        if (isUserAnswer) indicator = isCorrect ? ' ✓ Your answer' : ' ✗ Your answer';
+                        if (isCorrectAnswer && !isUserAnswer) indicator = ' ✓ Correct answer';
+                        
+                        return `
+                            <div class="${optionClass}">
+                                ${String.fromCharCode(65 + optIndex)}) ${option}
+                                ${indicator ? `<span class="answer-indicator">${indicator}</span>` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Function to delete a session from the modal
+function deleteSessionFromModal(sessionId) {
+    console.log("Deleting session from modal:", sessionId);
+    
+    // Show loading state on the delete button
+    const deleteBtn = document.getElementById('modal-delete-session-btn');
+    const originalText = deleteBtn.textContent;
+    deleteBtn.textContent = 'Deleting...';
+    deleteBtn.disabled = true;
+    
+    fetch(`/delete_session/${sessionId}`, { 
+        method: 'DELETE' 
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Close the modal first
+            closeSessionModal();
+            
+            // Then reload sessions to update the list
+            loadSessions(currentPage);
+            
+            // Show a brief success message (optional)
+            showTempMessage("Session deleted successfully", "success");
+        } else {
+            throw new Error(data.message || 'Failed to delete session');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting session:', error);
+        alert('Error deleting session: ' + error.message);
+        
+        // Restore button state on error
+        deleteBtn.textContent = originalText;
+        deleteBtn.disabled = false;
+    });
+}
+
+// Optional: Helper function to show temporary messages
+function showTempMessage(message, type = 'success') {
+    // Create message element
+    const messageEl = document.createElement('div');
+    messageEl.className = `temp-message temp-message-${type}`;
+    messageEl.textContent = message;
+    
+    // Add to page
+    document.body.appendChild(messageEl);
+    
+    // Remove after animation
+    setTimeout(() => {
+        if (messageEl.parentNode) {
+            messageEl.parentNode.removeChild(messageEl);
+        }
+    }, 2800);
 }

@@ -92,9 +92,11 @@
                         <span class="icon">📊</span>
                         Your Results
                     </h2>
+
                     <div class="score" id="score-container">
                         Score: 0/0 (0%)
                     </div>
+
                     <button id="save-btn" disabled>Save study session</button>
                 </section>
 
@@ -109,10 +111,12 @@
                             <span class="stat-value" id="average-score">0%</span>
                             <span class="stat-label">Average Score</span>
                         </div>
+
                         <div class="stat-card">
                             <span class="stat-value" id="total-questions">0</span>
                             <span class="stat-label">Total Questions</span>
                         </div>
+
                         <div class="stat-card">
                             <span class="stat-value" id="sessions-count">0</span>
                             <span class="stat-label">Study Sessions</span>
@@ -121,6 +125,7 @@
 
                     <div class="analytics-controls">
                         <label for="sessions-range">Show last:</label>
+
                         <select id="sessions-range">
                             <option value="5" selected>5 tests</option>
                             <option value="10">10 tests</option>
@@ -140,6 +145,7 @@
                             <span class="icon">📚</span>
                             Your Saved Sessions
                         </h2>
+
                         <div class="sessions-controls">
                             <input type="text" class="search-sessions" placeholder="Search sessions..." 
                                 oninput="filterSessions(this.value)">
@@ -154,7 +160,6 @@
                         <!-- Pagination controls will be rendered here -->
                     </div>
                 </section>
-
             </div>
         </div>
 
@@ -165,23 +170,55 @@
                     <div class="success-icon">✅</div>
                     <h2>Session Saved Successfully!</h2>
                 </div>
+
                 <div class="success-modal-body">
                     <p>Your study session has been saved to your history.</p>
                     <p>What would you like to do next?</p>
                 </div>
+
                 <div class="success-modal-options">
                     <button id="start-fresh" class="modal-btn secondary">
                         Start Fresh with New Notes
                     </button>
+
                     <button id="continue-same-notes" class="modal-btn primary">
                         Continue with Same Notes
                     </button>
+
                     <button id="view-progress" class="modal-btn tertiary">
                         Stay in This Session
                     </button>
                 </div>
             </div>
         </div>
+
+        <!-- Session Detail Modal -->
+        <div id="session-detail-modal" class="modal session-detail-modal" style="display: none;">
+            <div class="modal-content session-detail-content">
+                <!-- Modal Header -->
+                <div class="session-modal-header">
+                    <h2 id="session-modal-title">Session Title Placeholder</h2>
+                </div>
+                
+                <div class="session-modal-meta">
+                    <span id="session-modal-date">Created: Loading...</span>
+                    <span id="session-modal-score">Score: 0% (0/0)</span>
+                </div>
+
+                <!-- Modal Body (Scrollable Content) -->
+                <div class="session-modal-body" id="session-questions-container">
+                    <!-- Questions will be dynamically inserted here by JavaScript -->
+                    <div class="question-placeholder">Loading session details...</div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="session-modal-footer">
+                    <button class="modal-btn delete-btn" id="modal-delete-session-btn">Delete Session</button>
+                    <button class="modal-btn secondary" id="modal-close-btn">Close</button>
+                </div>
+            </div>
+        </div>
+
         <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     </body>
 </html>

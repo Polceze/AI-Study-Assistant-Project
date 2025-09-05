@@ -608,7 +608,7 @@ button .checkmark {
     display: flex;
     gap: 10px; /* Reduced gap */
     align-items: center;
-    justify-self: end; /* Push to the right but within available space */
+
 }
 
 .session-stat {
@@ -619,7 +619,7 @@ button .checkmark {
     border-radius: 6px;
     font-size: 0.85rem; /* Slightly smaller font */
     white-space: nowrap;
-    min-width: auto; /* Remove fixed min-width */
+    min-width: 120px; /* Remove fixed min-width */
 }
 
 .session-questions {
@@ -632,19 +632,6 @@ button .checkmark {
     background: #f3e5f5;
     color: #7b1fa2;
     border: 1px solid #e1bee7;
-}
-
-.delete-session-btn {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 6px 12px; /* Reduced padding */
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-size: 0.85rem; /* Slightly smaller font */
-    white-space: nowrap;
-    justify-self: end; /* Ensure it stays at the end */
 }
 
 .session-questions {
@@ -661,8 +648,48 @@ button .checkmark {
     min-width: 100px;
 }
 
+.session-actions {
+    display: flex;
+    gap: 20px;
+    justify-self: end;
+}
+
+.delete-session-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 15px; 
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.85rem; 
+    white-space: nowrap;
+    justify-self: end; /* Ensure it stays at the end */
+    position: relative;
+    top: -2px; /* Align with other stats */
+}
+
 .delete-session-btn:hover {
     background: #c82333;
+    transform: translateY(-2px);
+}
+
+.view-session-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 20px; 
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.85rem; /* Slightly smaller font */
+    white-space: nowrap;
+    position: relative;
+    top: -2px; 
+}
+
+.view-session-btn:hover {
+    background: #208b39;
     transform: translateY(-2px);
 }
 
@@ -689,6 +716,8 @@ button .checkmark {
     border: none;
     cursor: pointer;
     transition: all 0.3s;
+    position: relative;
+    top: -2px;
 }
 
 .pagination-btn:hover {
@@ -726,8 +755,12 @@ button .checkmark {
     }
     
     .session-stats {
-        justify-content: flex-start;
-        gap: 15px;
+        justify-content: flex-center;
+        gap: auto;
+    }
+
+    .pagination-btn {
+        justify-self: flex-center;
     }
     
     .session-stat {
@@ -1030,5 +1063,279 @@ button .checkmark {
     .modal-btn {
         padding: 12px 16px;
         font-size: 0.95rem;
+    }
+}
+
+/* Session Detail Modal Styles */
+.session-detail-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1003; /* Higher than other modals */
+    backdrop-filter: blur(5px);
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.session-detail-content {
+    font-size: 14px;
+    background: white;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 700px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.session-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 25px 25px 0 25px;
+    border-bottom: 1px solid #e0e0e0;
+    flex-shrink: 0;
+}
+
+.session-modal-header h2 {
+    color: #6e8efb;
+    margin: 0;
+    font-size: 1.2rem;
+    flex: 1;
+    margin-right: 15px;
+}
+
+.session-modal-meta {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 25px;
+    background-color: #f8f9fa;
+    font-size: 0.9rem;
+    color: #666;
+    border-bottom: 1px solid #e0e0e0;
+    flex-shrink: 0;
+}
+
+.session-modal-body {
+    padding: 20px 25px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.session-question {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.session-question:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.session-question-text {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 15px;
+    color: #000000;
+}
+
+.session-option {
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    background: #fafafa;
+}
+
+.session-option.correct {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #000000;
+}
+
+.session-option.incorrect {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #000000;
+}
+
+.session-option.user-answer::after {
+    content: " ← Your answer";
+    font-style: italic;
+    opacity: 0.7;
+}
+
+.session-option.correct-answer::after {
+    content: " ✓ Correct answer";
+    font-style: italic;
+    opacity: 0.7;
+}
+
+.session-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding: 20px 25px;
+    border-top: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+    flex-shrink: 0;
+}
+
+/* Session Modal Footer Button Styles */
+.session-modal-footer .modal-btn {
+    margin: 0;
+    min-width: auto;
+    font-size: 0.8rem; 
+    padding: 12px 1px; 
+}
+
+/* style for DELETE button in the modal footer */
+.session-modal-footer .modal-btn.delete-btn {
+    background: #dc3545; /* Red color for delete */
+    color: white;
+    border: none;
+}
+
+.session-modal-footer .modal-btn.delete-btn:hover {
+    background: #c82333; /* Darker red on hover */
+    transform: translateY(-2px);
+}
+
+/* Responsive design for modal */
+@media (max-width: 768px) {
+    .session-detail-modal {
+        padding: 10px;
+    }
+    
+    .session-detail-content {
+        max-height: 90vh;
+    }
+    
+    .session-modal-header {
+        flex-direction: column;
+        gap: 10px;
+        padding: 15px 15px 0 15px;
+    }
+    
+    .session-modal-header h2 {
+        margin-right: 0;
+        font-size: 1.3rem;
+    }
+    
+    .session-modal-meta {
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px 15px;
+    }
+    
+    .session-modal-body {
+        padding: 15px;
+    }
+    
+    .session-modal-footer {
+        flex-direction: column-reverse;
+        padding: 15px;
+    }
+    
+    .modal-btn {
+        width: 100%;
+    }
+    
+    .session-option.user-answer::after,
+    .session-option.correct-answer::after {
+        content: "";
+        display: block;
+        font-size: 0.75rem;
+        margin-top: 4px;
+    }
+    
+    .session-option.user-answer::after {
+        content: "Your answer ✗";
+    }
+    
+    .session-option.correct-answer::after {
+        content: "Correct answer ✓";
+    }
+}
+
+/* Additional styles for session modal content */
+.error-message {
+    text-align: center;
+    padding: 20px;
+    color: #dc3545;
+}
+
+.no-questions-message {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+}
+
+.session-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.answer-indicator {
+    font-weight: 600;
+    margin-left: 8px;
+    font-size: 0.9em;
+}
+
+.session-option.correct .answer-indicator {
+    color: #155724;
+}
+
+.session-option.incorrect .answer-indicator {
+    color: #721c24;
+}
+
+/* Temporary Message Styles */
+.temp-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 6px;
+    color: white;
+    font-weight: 600;
+    z-index: 2000;
+    animation: fadeInOut 3s ease-in-out;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.temp-message-success {
+    background: #28a745;
+}
+
+.temp-message-error {
+    background: #dc3545;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(-20px); }
+    10% { opacity: 1; transform: translateY(0); }
+    90% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-20px); }
+}
+
+/* Adjust for mobile */
+@media (max-width: 768px) {
+    .temp-message {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        text-align: center;
     }
 }
