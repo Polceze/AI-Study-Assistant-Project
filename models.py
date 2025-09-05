@@ -3,7 +3,6 @@ from mysql.connector.pooling import MySQLConnectionPool
 from mysql.connector import Error
 from config import Config
 import json
-import pymysql
 
 class Database:
     def __init__(self):
@@ -16,7 +15,7 @@ class Database:
         # Initialize connection pool
         self.pool = MySQLConnectionPool(
             pool_name="learnlab_pool",
-            pool_size=10,  # Adjust based on expected load (5-10 is typical for small apps)
+            pool_size=10,
             pool_reset_session=True,
             **self.config
         )
@@ -26,30 +25,26 @@ class Database:
         """Get a connection from the pool"""
         try:
             self.connection = self.pool.get_connection()
-            print("✅ Successfully retrieved connection from pool")
             return self.connection
         except Error as e:
-            print(f"❌ Error retrieving connection from pool: {e}")
+            print(f"Error retrieving connection from pool: {e}")
             return None
     
     def disconnect(self):
         """Return connection to pool"""
         if self.connection and self.connection.is_connected():
-            self.connection.close()  # Returns connection to pool
-            print("✅ Connection returned to pool")
+            self.connection.close()
     
     def initialize_database(self):
         """Create necessary tables if they don't exist"""
-        print("🔄 Initializing database tables...")
         connection = self.connect()
         if connection is None:
-            print("❌ Cannot initialize database: No connection")
             return False
         
         try:
             cursor = connection.cursor()
             
-            # Create users table (if not exists)
+            # Create users table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -58,9 +53,8 @@ class Database:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB
             """)
-            print("✅ Users table verified")
             
-            # Create study_sessions table with user_id foreign key
+            # Create study_sessions table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS study_sessions (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,7 +68,6 @@ class Database:
                     INDEX idx_created_at (created_at)
                 ) ENGINE=InnoDB
             """)
-            print("✅ Study_sessions table verified")
             
             # Create studycards table
             cursor.execute("""
@@ -91,21 +84,18 @@ class Database:
                     INDEX idx_session_id (session_id)
                 ) ENGINE=InnoDB
             """)
-            print("✅ Studycards table verified")
             
             # Create default anonymous user if not exists
             cursor.execute("""
                 INSERT IGNORE INTO users (email) 
                 VALUES ('anonymous@example.com')
             """)
-            print("✅ Default anonymous user verified")
             
             connection.commit()
-            print("✅ Database initialization completed successfully")
             return True
             
         except Error as e:
-            print(f"❌ Error initializing database: {e}")
+            print(f"Error initializing database: {e}")
             return False
         finally:
             if connection and connection.is_connected():
@@ -113,8 +103,7 @@ class Database:
                 self.disconnect()
 
     def create_study_session(self, title, notes, user_id=None):
-        """Create a new study session - use provided user_id or current user"""
-        print(f"🔄 Creating study session: {title}")
+        """Create a new study session"""
         connection = self.connect()
         if connection is None:
             return None
@@ -122,33 +111,21 @@ class Database:
         try:
             cursor = connection.cursor()
             
-            # If no user_id provided, try to get from Flask context
-            if user_id is None:
-                try:
-                    from flask import g
-                    if hasattr(g, 'user_id') and g.user_id:
-                        user_id = g.user_id
-                        print(f"✅ Using current user ID: {user_id}")
-                except:
-                    pass
-            
-            # If still no user_id, use anonymous user
+            # If no user_id provided, use anonymous user
             if user_id is None:
                 cursor.execute("SELECT id FROM users WHERE email = 'anonymous@example.com'")
                 anonymous_user = cursor.fetchone()
                 user_id = anonymous_user[0] if anonymous_user else None
-                print(f"✅ Using anonymous user ID: {user_id}")
             
             cursor.execute(
                 "INSERT INTO study_sessions (title, notes, user_id) VALUES (%s, %s, %s)",
                 (title, notes, user_id)
             )
             connection.commit()
-            session_id = cursor.lastrowid
-            print(f"✅ Study session created with ID: {session_id} for user: {user_id}")
-            return session_id
+            return cursor.lastrowid
+            
         except Error as e:
-            print(f"❌ Error creating study session: {e}")
+            print(f"Error creating study session: {e}")
             return None
         finally:
             cursor.close()
@@ -156,7 +133,6 @@ class Database:
     
     def save_flashcards(self, session_id, studycards):
         """Save studycards for a study session"""
-        print(f"🔄 Saving {len(studycards)} studycards for session {session_id}")
         connection = self.connect()
         if connection is None:
             return False
@@ -164,7 +140,7 @@ class Database:
         try:
             cursor = connection.cursor()
             
-            for i, card in enumerate(studycards):
+            for card in studycards:
                 user_answer = card.get('userAnswer')
                 is_correct = (user_answer == card['correctAnswer']) if user_answer is not None else None
                 
@@ -181,32 +157,27 @@ class Database:
                         is_correct
                     )
                 )
-                print(f"✅ Saved flashcard {i+1}: User answered {user_answer}, Correct: {is_correct}")
             
             connection.commit()
-            print("✅ All studycards saved successfully")
             return True
             
         except Error as e:
-            print(f"❌ Error saving studycards: {e}")
+            print(f"Error saving studycards: {e}")
             return False
         finally:
             cursor.close()
             self.disconnect()
     
     def get_sessions(self, user_id=None):
-        print(f"🔍 DEBUG: get_sessions called with user_id: {user_id}")
-        
+        """Get study sessions for a user"""
         connection = self.connect()
         if connection is None:
-            print("❌ DEBUG: Database connection failed")
             return {"status": "error", "message": "Database connection failed"}
         
         cursor = None
         try:
             cursor = connection.cursor(dictionary=True)
             
-            # Build the query with proper parameter handling
             query = """
                 SELECT 
                     s.id,
@@ -224,26 +195,17 @@ class Database:
                 LEFT JOIN studycards c ON s.id = c.session_id
             """
             
-            # Add WHERE clause if user_id is provided
             if user_id is not None:
                 query += " WHERE s.user_id = %(user_id)s"
                 params = {'user_id': user_id}
             else:
                 params = {}
             
-            # Add GROUP BY and ORDER BY
             query += " GROUP BY s.id, s.title, s.created_at ORDER BY s.created_at DESC"
             
-            print(f"🔍 DEBUG: Executing query: {query}")
-            print(f"🔍 DEBUG: With params: {params}")
-            
-            # Use named parameters instead of positional
             cursor.execute(query, params)
-            
             sessions = cursor.fetchall()
-            print(f"🔍 DEBUG: Found {len(sessions)} sessions")
 
-            # Convert to appropriate types
             formatted_sessions = []
             for s in sessions:
                 formatted_sessions.append({
@@ -256,20 +218,16 @@ class Database:
                     "score_percentage": float(s["score_percentage"]) if s.get("score_percentage") is not None else 0.0
                 })
 
-            print(f"🔍 DEBUG: Returning {len(formatted_sessions)} formatted sessions")
             return {"status": "success", "sessions": formatted_sessions}
                 
         except Error as e:
-            print(f"❌ Error retrieving sessions: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"Error retrieving sessions: {e}")
             return {"status": "error", "message": str(e)}
         finally:
             if cursor:
                 cursor.close()
             if connection and connection.is_connected():
                 connection.close()
-
 
     def get_or_create_user(self, email):
         """Get user by email, create if not exists"""
@@ -280,28 +238,21 @@ class Database:
         try:
             cursor = connection.cursor(dictionary=True)
             
-            # Try to get existing user
             cursor.execute("SELECT id, email FROM users WHERE email = %s", (email,))
             user = cursor.fetchone()
             
             if user:
-                print(f"✅ Found existing user: {user['email']} (ID: {user['id']})")
                 return user
             
-            # Create new user
             cursor.execute("INSERT INTO users (email) VALUES (%s)", (email,))
             connection.commit()
             user_id = cursor.lastrowid
             
-            # Get the created user
             cursor.execute("SELECT id, email FROM users WHERE id = %s", (user_id,))
-            new_user = cursor.fetchone()
-            
-            print(f"✅ Created new user: {email} (ID: {user_id})")
-            return new_user
+            return cursor.fetchone()
             
         except Error as e:
-            print(f"❌ Error getting/creating user: {e}")
+            print(f"Error getting/creating user: {e}")
             return None
         finally:
             if connection and connection.is_connected():
@@ -309,9 +260,7 @@ class Database:
                 self.disconnect()
 
     def get_sessions_for_chart(self, user_id=None, limit=10):
-        """Get sessions specifically formatted for chart data"""
-        print(f"🔍 DEBUG: get_sessions_for_chart called with user_id: {user_id}, limit: {limit}")
-        
+        """Get sessions for chart data"""
         connection = self.connect()
         if connection is None:
             return []
@@ -337,7 +286,6 @@ class Database:
                 LEFT JOIN studycards c ON s.id = c.session_id
             """
             
-            # Build WHERE clause and parameters
             params = {}
             where_clauses = []
             
@@ -345,27 +293,21 @@ class Database:
                 where_clauses.append("s.user_id = %(user_id)s")
                 params['user_id'] = user_id
             else:
-                # If no user specified, include anonymous sessions
                 cursor.execute("SELECT id FROM users WHERE email = 'anonymous@example.com'")
                 anonymous_user = cursor.fetchone()
                 if anonymous_user:
                     where_clauses.append("s.user_id = %(anonymous_user_id)s")
                     params['anonymous_user_id'] = anonymous_user['id']
             
-            # Add WHERE clause if needed
             if where_clauses:
                 query += " WHERE " + " AND ".join(where_clauses)
             
             query += " GROUP BY s.id, s.title, s.created_at ORDER BY s.created_at DESC LIMIT %(limit)s"
             params['limit'] = limit
             
-            print(f"🔍 DEBUG: Executing chart query: {query}")
-            print(f"🔍 DEBUG: With params: {params}")
-            
             cursor.execute(query, params)
             sessions = cursor.fetchall()
 
-            # Convert to appropriate types and format for chart
             formatted_sessions = []
             for s in sessions:
                 formatted_sessions.append({
@@ -381,9 +323,7 @@ class Database:
             return formatted_sessions
             
         except Error as e:
-            print(f"❌ Error retrieving sessions for chart: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"Error retrieving sessions for chart: {e}")
             return []
         finally:
             if cursor:
@@ -411,7 +351,7 @@ class Database:
             return studycards
             
         except Error as e:
-            print(f"❌ Error retrieving studycards: {e}")
+            print(f"Error retrieving studycards: {e}")
             return []
         finally:
             cursor.close()
@@ -419,7 +359,6 @@ class Database:
 
     def delete_session(self, session_id):
         """Delete a study session and its associated cards"""
-        print(f"🔄 Deleting session {session_id}")
         connection = self.connect()
         if connection is None:
             return False
@@ -427,19 +366,14 @@ class Database:
         try:
             cursor = connection.cursor()
             
-            # First delete associated studycards (due to foreign key constraint)
             cursor.execute("DELETE FROM studycards WHERE session_id = %s", (session_id,))
-            print(f"✅ Deleted studycards for session {session_id}")
-            
-            # Then delete the session
             cursor.execute("DELETE FROM study_sessions WHERE id = %s", (session_id,))
             connection.commit()
             
-            print(f"✅ Successfully deleted session {session_id}")
             return True
             
         except Error as e:
-            print(f"❌ Error deleting session {session_id}: {e}")
+            print(f"Error deleting session {session_id}: {e}")
             connection.rollback()
             return False
         finally:

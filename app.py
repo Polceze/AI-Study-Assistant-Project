@@ -2,10 +2,9 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 import os
 from dotenv import load_dotenv
 from models import Database
-from datetime import datetime, timedelta
+from datetime import datetime
 import requests
 import json
-import uuid
 import re
 from cachetools import TTLCache
 
@@ -16,41 +15,32 @@ app.secret_key = os.environ.get('SECRET_KEY') or os.urandom(24).hex()
 
 # Initialize database
 db = Database()
-
-# Initialize database when app starts
-print("🚀 Starting AI Study Buddy application...")
 db.initialize_database()
 
 session_cache = TTLCache(maxsize=100, ttl=60)  # 60-second TTL, max 100 users
 
 def get_user_sessions(user_id):
-    """Get sessions from cache or database """
+    """Get sessions from cache or database"""
     cache_key = f"sessions_{user_id}"
     
-    # Check cache first (TTLCache handles expiration automatically)
+    # Check cache first
     try:
         if cache_key in session_cache:
-            print(f"✅ Cache hit for user {user_id}")
             return session_cache[cache_key]
-    except Exception as e:
-        print(f"❌ Cache error: {e}")
+    except Exception:
+        pass
     
-    # If not in cache or expired, fetch from database
-    print(f"🔍 Cache miss - fetching from database for user {user_id}")
+    # Fetch from database
     result = db.get_sessions(user_id)
-    
-    # Extract sessions data based on your database structure
     sessions = result.get('sessions', []) if isinstance(result, dict) and result.get('status') == 'success' else []
     
-    # Store in cache (TTLCache will auto-expire after ttl seconds)
+    # Store in cache
     try:
         session_cache[cache_key] = sessions
-        print(f"💾 Cached sessions for user {user_id} (TTL: {session_cache.ttl}s)")
-    except Exception as e:
-        print(f"❌ Cache set error: {e}")
+    except Exception:
+        pass
     
     return sessions
-
 
 def invalidate_user_cache(user_id):
     """Invalidate cache for a user's sessions"""
@@ -58,9 +48,8 @@ def invalidate_user_cache(user_id):
     try:
         if cache_key in session_cache:
             del session_cache[cache_key]
-            print(f"🗑️ Cache invalidated for user_id={user_id}")
-    except Exception as e:
-        print(f"❌ Cache invalidate error: {e}")
+    except Exception:
+        pass
 
 
 def generate_questions_with_gemini(notes, num_questions=6):
@@ -327,23 +316,17 @@ def save_flashcards():
 
 @app.route('/get_sessions', methods=['GET'])
 def get_sessions_route():
-    """Get all study sessions for current user - UPDATED WITH CACHING"""
+    """Get all study sessions for current user"""
     try:
         user_id = session.get('user_id')
-        print(f"🔍 DEBUG: User ID from session: {user_id}")
-        
         if not user_id:
-            print("❌ DEBUG: No user_id in session - authentication required")
             return jsonify({"status": "error", "message": "Authentication required"}), 401
             
-        sessions = get_user_sessions(user_id)  # Use cached version
+        sessions = get_user_sessions(user_id)
         return jsonify({"status": "success", "sessions": sessions})
         
     except Exception as e:
-        print(f"❌ Error in get_sessions: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 
 @app.route('/get_flashcards/<int:session_id>', methods=['GET'])
@@ -383,11 +366,13 @@ def list_sessions():
         if not user_id:
             return jsonify({"status": "error", "message": "Authentication required"}), 401
             
-        sessions = get_user_sessions(user_id)  # Use cached version
+        sessions = get_user_sessions(user_id)
         return jsonify({"status": "success", "sessions": sessions})
         
     except Exception as e:
         print(f"❌ Error in list_sessions: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
     
 
