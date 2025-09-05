@@ -986,33 +986,33 @@ button .checkmark {
     width: 100%;
 }
 
-.modal-btn.primary {
+.modal-btn.secondary {
     background: #28a745;
     color: white;
 }
 
-.modal-btn.primary:hover {
+.modal-btn.secondary:hover {
     background: #218838;
     transform: translateY(-2px);
 }
 
-.modal-btn.secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.modal-btn.secondary:hover {
-    background: #5a6268;
-    transform: translateY(-2px);
-}
-
-.modal-btn.tertiary {
+.modal-btn.primary {
     background: #6e8efb;
     color: white;
 }
 
-.modal-btn.tertiary:hover {
+.modal-btn.primary:hover {
     background: #5a7df9;
+    transform: translateY(-2px);
+}
+
+.modal-btn.tertiary {
+    background: #6c757d;
+    color: white;
+}
+
+.modal-btn.tertiary:hover {
+    background: #5a6268;
     transform: translateY(-2px);
 }
 

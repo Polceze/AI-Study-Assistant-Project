@@ -32,24 +32,21 @@ def generate_questions_with_gemini(notes, num_questions=6):
     try:
         # Try multiple endpoint formats - one of these should work
         endpoints = [
+            f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}",                        
             f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={api_key}",
-            f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}",            
             f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={api_key}",
             f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
         ]
         
         prompt = f"""
-        You are an expert educational assistant. Generate {num_questions} multiple choice questions based on the following study notes.
+        You are an expert educational assistant. Generate {num_questions} diverse multiple-choice study questions based on the following notes. 
+        Each question should have exactly 4 plausible answer options (A, B, C, D), with only one correct answer. 
+        Questions should test memorization and understanding but should not be too obscure. Return the result in JSON format with the following structure for each question.
+        Mark the correct answer with the corresponding letter (0 for A, 1 for B, 2 for C, 3 for D)
         
         STUDY NOTES:
         {notes[:2000]}
-        
-        REQUIREMENTS:
-        1. Create {num_questions} diverse multiple choice questions
-        2. Each question must have 4 plausible options (A, B, C, D)
-        3. Mark the correct answer with the corresponding letter (0 for A, 1 for B, 2 for C, 3 for D)
-        4. Questions should test memorization and understanding but should not be too obscure
-        5. Return ONLY valid JSON format like this:
         
         {{
             "questions": [
@@ -150,20 +147,36 @@ def get_sample_questions(num_questions):
     """Return sample questions as fallback"""
     sample_questions = [
         {
+            "question": "What is the capital of France?",
+            "options": ["Paris", "London", "Berlin", "Madrid"],
+            "correctAnswer": 0
+        },
+        {
             "question": "What field is machine learning a subset of?",
-            "options": ["Data science", "Artificial intelligence", "Computer programming", "Deep learning"],
+            "options": ["Data science", "Computer programming", "Deep learning", "Artificial intelligence"],
+            "correctAnswer": 3
+        },
+        {
+            "question": "Which planet is known as the Red Planet?",
+            "options": ["Venus", "Mars", "Jupiter", "Saturn"],
             "correctAnswer": 1
         },
         {
-            "question": "What do machine learning systems use to learn by themselves?",
-            "options": ["Algorithms", "Data", "Human teachers", "Trial and error"],
+            "question": "What is 2 x 0.2?",
+            "options": ["2.2", "0.4", "4.4", "0.04"],
             "correctAnswer": 1
         },
         {
-            "question": "What does the process of machine learning begin with?",
-            "options": ["Testing", "Programming", "Observations or data", "Algorithm design"],
+            "question": "How do you say 'hello' in Japanese?",
+            "options": ["Ni hao", "Anyeong", "Konnichiwa", "Ola"],
             "correctAnswer": 2
+        },
+        {
+            "question": "What device uses sunlight to tell time?",
+            "options": ["Quartz", "An hourglass", "A pendulum", "A sundial"],
+            "correctAnswer": 3
         }
+
     ]
     return sample_questions[:num_questions]
 
@@ -279,8 +292,7 @@ def get_sessions_route():
             return jsonify({"status": "error", "message": "Authentication required"}), 401
             
         result = db.get_sessions(user_id)
-        print(f"🔍 DEBUG: Database result: {result}")
-        
+                
         return jsonify(result)
     except Exception as e:
         print(f"❌ Error in get_sessions: {e}")
@@ -325,8 +337,7 @@ def list_sessions():
             return jsonify({"status": "error", "message": "Authentication required"}), 401
             
         result = db.get_sessions(user_id)
-        print("DEBUG result:", result)
-        
+                
         if result.get('status') == 'success':
             return jsonify({"status": "success", "sessions": result.get('sessions', [])})
         else:
