@@ -274,7 +274,7 @@ class Database:
                 s.id,
                 s.title,
                 s.created_at,
-                DATE_FORMAT(CONVERT_TZ(s.created_at, @@session.time_zone, '+00:00'), '%Y-%m-%d %H:%i:%s') AS created_at_formatted,
+                DATE_FORMAT(s.created_at, '%Y-%m-%d %H:%i:%s') AS created_at_formatted,
                 COUNT(c.id) AS total_questions,
                 SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) AS correct_answers,
                 CASE 

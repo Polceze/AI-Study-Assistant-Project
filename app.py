@@ -269,7 +269,8 @@ def save_flashcards():
         data = request.get_json()
         flashcards = data.get('flashcards', [])
         notes = data.get('notes', '')
-        title = f"Study Session {datetime.now(timezone.utc).strftime('%Y-%m-%d at %H:%M')}"
+        title = f"Study Session {datetime.now().strftime('%Y-%m-%d at %H:%M')}"
+        print(f"Generated title: {title} (UTC)")  # Added for debugging
         
         print(f"💾 Received save request with {len(flashcards)} flashcards")
         

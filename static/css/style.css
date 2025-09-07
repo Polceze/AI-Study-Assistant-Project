@@ -878,6 +878,101 @@ button .checkmark {
     background: #5a7df9;
 }
 
+/* Auth Top Bar Responsive Fixes */
+.auth-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: white;
+    padding: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.auth-topbar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    height: 100%;
+}
+
+.user-email {
+    font-weight: 600;
+    color: #6e8efb;
+    font-size: 1rem;
+}
+
+.logout-btn {
+    background: #6e8efb;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    position: static;
+    top: auto;
+}
+
+.logout-btn:hover {
+    background: #5a7df9;
+    transform: translateY(-2px);
+}
+
+/* Mobile responsiveness - Keep side by side but adjust spacing */
+@media (max-width: 768px) {
+    .auth-topbar-content {
+        padding: 0 15px;
+    }
+    
+    .user-email {
+        font-size: 0.9rem;
+        max-width: 60%; /* Prevent email from pushing button offscreen */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .logout-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        white-space: nowrap; /* Prevent button text wrapping */
+        width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-topbar-content {
+        padding: 0 10px;
+    }
+    
+    .user-email {
+        font-size: 0.8rem;
+        max-width: 55%; /* Even more space for button on very small screens */
+    }
+    
+    .logout-btn {
+        padding: 5px 10px;
+        font-size: 0.75rem;
+    }
+}
+
+/* Ensure content doesn't hide behind fixed bar */
+body.has-topbar {
+    padding-top: 80px;
+}
+
+@media (max-width: 768px) {
+    body.has-topbar {
+        padding-top: 70px; /* Less padding since we're not stacking */
+    }
+}
+
 /* Auth Modal */
 .auth-modal {
     position: fixed;
