@@ -770,7 +770,7 @@ function renderSessions(sessions) {
             <div class="session-content">
                 <div class="session-topic">${session.title}</div>
                 <!-- REMOVE the session-date line below -->
-                <!-- <div class="session-date">${new Date(session.created_at).toLocaleString()}</div> -->
+                <!-- <div class="session-date">${new Date(formatUTCDate(session.created_at)).toLocaleString()}</div> -->
             </div>
             <div class="session-stats">
                 <div class="session-stat session-questions">
@@ -1220,7 +1220,6 @@ function clearChatArea() {
 }
 
 // Function to open the session detail modal
-// Function to open the session detail modal
 function openSessionModal(sessionId) {
     console.log("Opening modal for session:", sessionId);
     const modal = document.getElementById('session-detail-modal');
@@ -1287,7 +1286,7 @@ function populateSessionModal(sessionId, flashcards) {
     
     // Update modal header and metadata
     document.getElementById('session-modal-title').textContent = session ? session.title : `Session ${sessionId}`;
-    document.getElementById('session-modal-date').textContent = session ? `Created: ${new Date(session.created_at).toLocaleString()}` : 'Created: Unknown';
+    document.getElementById('session-modal-date').textContent = session ? `Created: ${formatUTCDate(session.created_at)}` : 'Created: Unknown';
     document.getElementById('session-modal-score').textContent = `Score: ${scorePercentage}% (${correctAnswers}/${totalQuestions})`;
     
     // Generate questions HTML
@@ -1381,7 +1380,7 @@ function deleteSessionFromModal(sessionId) {
     });
 }
 
-// Optional: Helper function to show temporary messages
+// Helper function to show temporary messages
 function showTempMessage(message, type = 'success') {
     // Create message element
     const messageEl = document.createElement('div');
@@ -1397,4 +1396,21 @@ function showTempMessage(message, type = 'success') {
             messageEl.parentNode.removeChild(messageEl);
         }
     }, 2800);
+}
+
+// Helper function to format dates to UTC
+function formatUTCDate(dateString) {
+    const date = new Date(dateString);
+    // Format as: YYYY-MM-DD at HH:MM
+    return `${
+        date.getUTCFullYear()
+    }-${
+        String(date.getUTCMonth() + 1).padStart(2, '0')
+    }-${
+        String(date.getUTCDate()).padStart(2, '0')
+    } at ${
+        String(date.getUTCHours()).padStart(2, '0')
+    }:${
+        String(date.getUTCMinutes()).padStart(2, '0')
+    }`;
 }

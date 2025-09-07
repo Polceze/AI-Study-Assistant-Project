@@ -271,19 +271,19 @@ class Database:
             
             query = """
                 SELECT 
-                    s.id,
-                    s.title,
-                    s.created_at,
-                    DATE_FORMAT(s.created_at, '%Y-%m-%d %H:%i:%s') AS created_at_formatted,
-                    COUNT(c.id) AS total_questions,
-                    SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) AS correct_answers,
-                    CASE 
-                        WHEN COUNT(c.id) > 0 
-                        THEN ROUND(SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(c.id), 2) 
-                        ELSE 0 
-                    END AS score_percentage
-                FROM study_sessions s
-                LEFT JOIN studycards c ON s.id = c.session_id
+                s.id,
+                s.title,
+                s.created_at,
+                DATE_FORMAT(CONVERT_TZ(s.created_at, @@session.time_zone, '+00:00'), '%Y-%m-%d %H:%i:%s') AS created_at_formatted,
+                COUNT(c.id) AS total_questions,
+                SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) AS correct_answers,
+                CASE 
+                    WHEN COUNT(c.id) > 0 
+                    THEN ROUND(SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(c.id), 2) 
+                    ELSE 0 
+                END AS score_percentage
+            FROM study_sessions s
+            LEFT JOIN studycards c ON s.id = c.session_id
             """
             
             params = {}

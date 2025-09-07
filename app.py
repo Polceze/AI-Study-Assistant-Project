@@ -2,11 +2,12 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 import os
 from dotenv import load_dotenv
 from models import Database
-from datetime import datetime
+from datetime import datetime, timezone
 import requests
 import json
 import re
 from cachetools import TTLCache
+
 
 load_dotenv()
 
@@ -268,7 +269,7 @@ def save_flashcards():
         data = request.get_json()
         flashcards = data.get('flashcards', [])
         notes = data.get('notes', '')
-        title = f"Study Session {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        title = f"Study Session {datetime.now(timezone.utc).strftime('%Y-%m-%d at %H:%M')}"
         
         print(f"💾 Received save request with {len(flashcards)} flashcards")
         
