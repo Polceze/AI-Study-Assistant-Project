@@ -3,7 +3,11 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Quizzy - Study Cards Generator</title>
+        <title>ReviseAI - Study Cards Generator</title>
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+        <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+        <link rel="manifest" href="{{ url_for('static', filename='images/site.webmanifest') }}">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </head>
@@ -12,6 +16,7 @@
         <div id="auth-topbar" class="auth-topbar" style="display: none;">
             <div class="container">
                 <div class="auth-topbar-content">
+                    <img src="{{ url_for('static', filename='images/logo1.png') }}" alt="ReviseAI Logo" class="logo">
                     <span class="user-email" id="topbar-email">Not signed in</span>
                     <button id="logout-btn" class="logout-btn">Sign Out</button>
                 </div>
@@ -22,7 +27,8 @@
         <div id="auth-modal" class="auth-modal" style="display: none;">
             <div class="auth-modal-content">
                 <div class="auth-modal-header">
-                    <h2>Welcome to Quizzy</h2>
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="ReviseAI Logo" class="auth-logo">
+                    <h2>Welcome to ReviseAI</h2>
                     <p>Enter your email to start studying</p>
                 </div>
                 <div class="auth-modal-body">
@@ -30,13 +36,13 @@
                     <button id="auth-submit">Continue Studying</button>
                 </div>
                 <div class="auth-modal-footer">
-                    <p>Just your email • That's your Quizzy ID</p>
+                    <p>Just your email • That's your ReviseAI ID</p>
                 </div>
             </div>
         </div>
         <div class="container">
             <header>
-                <h1>Quizzy - AI Study Assistant</h1>
+                <h1>ReviseAI - AI Study Assistant</h1>
                 <p class="tagline">Generate interactive revision cards from your study notes</p>
             </header>
             
@@ -47,11 +53,6 @@
                         Your Study Notes
                     </h2>
                     <textarea id="study-notes" placeholder="Paste your study notes here, or a description of a topic, or feel free to type anything!"></textarea>
-                    
-                    <!-- <div class="api-key-container">
-                        <label for="api-key">Hugging Face API Key (optional for demo):</label>
-                        <input type="password" id="api-key" class="api-key-input" placeholder="Enter your HF API key if you have one">
-                    </div> -->
 
                     <!-- Add AI status indicator -->
                     <div id="ai-status" class="ai-status">
@@ -97,7 +98,7 @@
                         Score: 0/0 (0%)
                     </div>
 
-                    <button id="save-btn" disabled>Save study session</button>
+                    <button class="save-btn" id="save-btn" disabled>Save study session</button>
                 </section>
 
                 <section class="analytics-section">
@@ -193,7 +194,7 @@
         </div>
 
         <!-- Session Detail Modal -->
-        <div id="session-detail-modal" class="modal session-detail-modal" style="display: none;">
+        <div id="session-detail-modal" class="session-detail-modal" style="display: none;">
             <div class="modal-content session-detail-content">
                 <!-- Modal Header -->
                 <div class="session-modal-header">

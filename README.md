@@ -1,4 +1,4 @@
-# LearnLab - AI Study Assistant 🎓
+# ReviseAI - AI Study Assistant 🎓
 
 [![SDG 4 - Quality Education](https://img.shields.io/badge/SDG-4_Quality_Education-0A96D6?style=for-the-badge&logo=un&logoColor=white)](https://sdgs.un.org/goals/goal4)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
@@ -9,7 +9,7 @@
 
 ## 🌟 Supporting Sustainable Development Goal 4
 
-LearnLab directly contributes to **SDG 4: Quality Education** by:
+ReviseAI directly contributes to **SDG 4: Quality Education** by:
 - Making study materials creation accessible to all learners
 - Providing personalized, interactive learning experiences
 - Supporting both free and affordable premium education access
@@ -48,5 +48,5 @@ LearnLab directly contributes to **SDG 4: Quality Education** by:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/learnlab.git
-   cd learnlab
+   git clone https://github.com/yourusername/ReviseAI.git
+   cd ReviseAI

@@ -6,9 +6,9 @@ class Config:
     
     # Database configuration
     DB_HOST = os.environ.get('DB_HOST') or 'localhost'
-    DB_USER = os.environ.get('DB_USER') or 'learnlab_user'
+    DB_USER = os.environ.get('DB_USER') or 'reviseAI_user'
     DB_PASSWORD = os.environ.get('DB_PASSWORD') or 'password123'
-    DB_NAME = os.environ.get('DB_NAME') or 'learnlabDB'
+    DB_NAME = os.environ.get('DB_NAME') or 'reviseAI_DB'
     
     # Hugging Face API configuration
     HF_API_KEY = os.environ.get('HF_API_KEY') or ''

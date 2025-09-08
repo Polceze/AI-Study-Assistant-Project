@@ -14,7 +14,7 @@ class Database:
         }
         # Initialize connection pool
         self.pool = MySQLConnectionPool(
-            pool_name="learnlab_pool",
+            pool_name="reviseAI_pool",
             pool_size=10,
             pool_reset_session=True,
             **self.config

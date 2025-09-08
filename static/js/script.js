@@ -139,6 +139,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Event listener for logo refresh-page
+    const logo = document.querySelector('.logo');
+    if (logo) {
+        logo.addEventListener('click', function() {
+            window.location.reload();
+        });
+    }
 });
 
 // Delegate click events for dynamically created "View" buttons
@@ -1413,4 +1421,15 @@ function formatUTCDate(dateString) {
     }:${
         String(date.getUTCMinutes()).padStart(2, '0')
     }`;
+}
+
+// Function to handle logo click and refresh page
+function setupLogoRefresh() {
+    const logo = document.getElementById('logo');
+    
+    if (logo) {
+        logo.addEventListener('click', function() {           
+            window.location.reload();
+        });
+    }
 }

@@ -394,6 +394,209 @@ button .checkmark {
     margin: 20px 0;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 1024px) {
+    .flashcards-container {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 18px;
+    }
+    
+    .flashcard {
+        height: 320px;
+    }
+}
+
+@media (max-width: 768px) {
+    .flashcards-section {
+        padding: 20px;
+        border-radius: 12px;
+    }
+    
+    .flashcards-container {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+    }
+    
+    .flashcard {
+        height: 80%;
+    }
+    
+    .flashcard-front, .flashcard-back {
+        padding: 15px;
+    }
+    
+    .question {
+        font-size: 1.1rem;
+        margin-bottom: 12px;
+    }
+    
+    .option {
+        padding: 10px;
+        margin: 6px 0;
+    }
+    
+    .results-section {
+        padding: 20px;
+    }
+
+    .save-btn {
+        font-size: 0.9rem;
+        padding: 8px 10px;
+        position: relative;
+        top: 1px;
+    }
+    
+    .score {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .flashcards-container {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .flashcard {
+        height: 280px;
+    }
+    
+    .flashcards-section {
+        padding: 15px;
+    }
+    
+    .question {
+        font-size: 1rem;
+    }
+    
+    .option {
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .flashcard {
+        height: 260px;
+    }
+    
+    .flashcard-front, .flashcard-back {
+        padding: 12px;
+    }
+    
+    .question {
+        font-size: 0.95rem;
+        margin-bottom: 10px;
+    }
+    
+    .option {
+        padding: 8px;
+        margin: 5px 0;
+        font-size: 0.85rem;
+    }
+    
+    .feedback {
+        font-size: 0.9rem;
+        padding: 8px;
+    }
+    
+    .instructions {
+        font-size: 0.8rem;
+    }
+    
+    .results-section {
+        padding: 15px;
+    }
+    
+    .score {
+        font-size: 1.2rem;
+        margin: 15px 0;
+    }
+}
+
+/* Very small devices */
+@media (max-width: 360px) {
+    .flashcard {
+        height: 240px;
+    }
+    
+    .flashcard-front, .flashcard-back {
+        padding: 10px;
+    }
+    
+    .question {
+        font-size: 0.9rem;
+    }
+    
+    .option {
+        padding: 6px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Landscape orientation for mobile devices */
+@media (max-height: 500px) and (orientation: landscape) {
+    .flashcard {
+        height: 220px;
+    }
+    
+    .question {
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+    
+    .option {
+        padding: 6px;
+        margin: 4px 0;
+        font-size: 0.8rem;
+    }
+    
+    .feedback {
+        margin-top: 10px;
+        padding: 6px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Prevent text size adjustment on iOS */
+@supports (-webkit-touch-callout: none) {
+    .flashcard {
+        -webkit-text-size-adjust: 100%;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .flashcard-front {
+        border: 2px solid #000;
+    }
+    
+    .flashcard-back {
+        border: 3px solid #000;
+    }
+    
+    .option {
+        border-width: 2px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .flashcard-inner {
+        transition: none;
+    }
+    
+    .option {
+        transition: none;
+    }
+    
+    button[title]:hover::after {
+        transition: none;
+    }
+}
+
 /* Loading animation */
 .loader {
     display: none;
@@ -855,6 +1058,19 @@ button .checkmark {
     max-width: 1200px;
     margin: 0 40px;
     padding: 0 20px;
+    position: relative;
+    top: -5px;
+}
+
+.logo {
+    height: 40px; /* Fixed height to match top bar */
+    width: auto; /* Maintain aspect ratio */
+    display: block;
+    cursor: pointer;
+}
+
+.logo:hover {
+    transform: scale(1.1);
 }
 
 .user-email {
@@ -930,6 +1146,10 @@ button .checkmark {
         padding: 0 15px;
     }
     
+    .logo {
+        height: 35px; /* Slightly smaller on mobile */
+    }
+
     .user-email {
         font-size: 0.9rem;
         max-width: 60%; /* Prevent email from pushing button offscreen */
@@ -964,12 +1184,12 @@ button .checkmark {
 
 /* Ensure content doesn't hide behind fixed bar */
 body.has-topbar {
-    padding-top: 80px;
+    padding-top: 30px;
 }
 
 @media (max-width: 768px) {
     body.has-topbar {
-        padding-top: 70px; /* Less padding since we're not stacking */
+        padding-top: 20px; /* Less padding since we're not stacking */
     }
 }
 
@@ -990,12 +1210,19 @@ body.has-topbar {
 
 .auth-modal-content {
     background: white;
-    padding: 40px;
+    padding: 20px;
     border-radius: 15px;
     width: 90%;
     max-width: 400px;
     text-align: center;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.auth-logo {
+    height: 150px;
+    width: auto; /* Maintain aspect ratio */  
+    margin-bottom: -20px;
+    max-width: 100%;
 }
 
 .auth-modal-header h2 {
@@ -1047,6 +1274,166 @@ body.has-topbar {
     margin-top: 20px;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .auth-modal {
+        padding: 15px;
+        backdrop-filter: blur(5px);
+    }
+    
+    .auth-modal-content {
+        padding: 20px;
+        width: 95%;
+        max-width: 350px;
+        border-radius: 12px;
+    }
+    
+    .auth-logo {
+        max-height: 120px;
+        margin-bottom: -5px;
+    }
+    
+    .auth-modal-header h2 {
+        font-size: 1.3rem;
+        margin-bottom: 8px;
+    }
+    
+    .auth-modal-header p {
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+    }
+    
+    .auth-modal-body input {
+        padding: 12px;
+        font-size: 0.95rem;
+        margin-bottom: 12px;
+    }
+    
+    .auth-modal-body button {
+        padding: 12px 25px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-modal {
+        padding: 10px;
+    }
+    
+    .auth-modal-content {
+        padding: 18px;
+        width: 100%;
+        max-width: 320px;
+        border-radius: 10px;
+    }
+    
+    .auth-logo {
+        max-height: 100px;
+        margin-bottom: 0;
+    }
+    
+    .auth-modal-header h2 {
+        font-size: 1.2rem;
+    }
+    
+    .auth-modal-header p {
+        font-size: 0.85rem;
+        margin-bottom: 18px;
+    }
+    
+    .auth-modal-body input {
+        padding: 10px;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+    
+    .auth-modal-body button {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+    
+    .auth-modal-footer p {
+        font-size: 0.8rem;
+        margin-top: 15px;
+    }
+}
+
+/* Very small devices (e.g., iPhone SE) */
+@media (max-width: 320px) {
+    .auth-modal-content {
+        padding: 15px;
+        max-width: 280px;
+    }
+    
+    .auth-logo {
+        max-height: 80px;
+    }
+    
+    .auth-modal-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .auth-modal-body input {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Prevent horizontal scrolling on small devices */
+@media (max-width: 480px) {
+    .auth-modal-content {
+        box-sizing: border-box;
+    }
+}
+
+/* Landscape orientation adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+    .auth-modal-content {
+        max-height: 80vh;
+        padding: auto;
+    }
+    
+    .auth-logo {
+        max-height: 80px;
+        margin-bottom: -10;
+        margin-top: -10px;
+    }
+    
+    .auth-modal-header {
+        margin-top: -10px;
+        font-size: 1.5rem   ;
+    }
+    
+    .auth-modal-header h2 {
+        font-size: 1.2rem;
+        margin-bottom: -5px;
+    }
+    
+    .auth-modal-header p {
+        margin-bottom: 10px;
+        font-size: 0.7rem;
+    }
+    
+    .auth-modal-body input {
+        padding: 4px;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .auth-modal-body button {
+        padding: 8px 15px;
+        font-size: 0.8rem;
+        position: relative;
+    }
+    
+    .auth-modal-footer p {
+        margin-top: 10px;
+        font-size: 0.8rem;
+        position: relative;
+        top: 10px;
+    }
+}
+
 /* Success Modal */
 .success-modal {
     position: fixed;
@@ -1060,6 +1447,8 @@ body.has-topbar {
     align-items: center;
     z-index: 1002; /* Higher than auth modal */
     backdrop-filter: blur(5px);
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .success-modal-content {
@@ -1070,6 +1459,8 @@ body.has-topbar {
     max-width: 450px;
     text-align: center;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .success-modal-header {
@@ -1085,6 +1476,7 @@ body.has-topbar {
     color: #155724;
     margin: 0;
     font-size: 1.5rem;
+    line-height: 1.3;
 }
 
 .success-modal-body {
@@ -1095,6 +1487,7 @@ body.has-topbar {
     color: #333;
     margin: 8px 0;
     font-size: 1.1rem;
+    line-height: 1.4;
 }
 
 .success-modal-options {
@@ -1145,19 +1538,216 @@ body.has-topbar {
 }
 
 /* Responsive design */
-@media (max-width: 500px) {
+@media (max-width: 768px) {
+    .success-modal {
+        padding: 15px;
+        backdrop-filter: blur(3px);
+    }
+    
     .success-modal-content {
-        padding: 20px;
-        margin: 20px;
+        padding: 25px;
+        width: 95%;
+        max-width: 400px;
+        border-radius: 12px;
+    }
+    
+    .success-modal-header .success-icon {
+        font-size: 2.5rem;
+        margin-bottom: 12px;
     }
     
     .success-modal-header h2 {
-        font-size: 1.3rem;
+        font-size: 1.4rem;
+    }
+    
+    .success-modal-body p {
+        font-size: 1rem;
+        margin: 6px 0;
+    }
+    
+    .modal-btn {
+        padding: 13px 18px;
+        font-size: 0.98rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .success-modal {
+        padding: 10px;
+    }
+    
+    .success-modal-content {
+        padding: 20px;
+        width: 100%;
+        max-width: 320px;
+        border-radius: 10px;
+        max-height: 85vh;
+    }
+    
+    .success-modal-header {
+        margin-bottom: 15px;
+    }
+    
+    .success-modal-header .success-icon {
+        font-size: 2.2rem;
+        margin-bottom: 10px;
+    }
+    
+    .success-modal-header h2 {
+        font-size: 1.2rem;
+    }
+    
+    .success-modal-body {
+        margin-bottom: 20px;
+    }
+    
+    .success-modal-body p {
+        font-size: 0.95rem;
+        margin: 5px 0;
+    }
+    
+    .success-modal-options {
+        gap: 10px;
     }
     
     .modal-btn {
         padding: 12px 16px;
         font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .success-modal-content {
+        padding: 18px;
+        max-width: 280px;
+    }
+    
+    .success-modal-header .success-icon {
+        font-size: 2rem;
+    }
+    
+    .success-modal-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .success-modal-body p {
+        font-size: 0.9rem;
+    }
+    
+    .modal-btn {
+        padding: 10px 14px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Landscape orientation for mobile devices */
+@media (max-height: 500px) and (orientation: landscape) {
+    .success-modal-content {
+        max-height: 80vh;
+        padding: 20px;
+        max-width: 90%;
+    }
+    
+    .success-modal-header {
+        margin-bottom: 15px;
+    }
+    
+    .success-modal-header .success-icon {
+        font-size: 2rem;
+        margin-bottom: 8px;
+    }
+    
+    .success-modal-header h2 {
+        font-size: 1.2rem;
+    }
+    
+    .success-modal-body {
+        margin-bottom: 15px;
+    }
+    
+    .success-modal-body p {
+        font-size: 0.9rem;
+        margin: 4px 0;
+    }
+    
+    .success-modal-options {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .modal-btn {
+        flex: 1;
+        min-width: 120px;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Very small height devices */
+@media (max-height: 400px) {
+    .success-modal-content {
+        max-height: 95vh;
+        padding: 15px;
+    }
+    
+    .success-modal-header {
+        margin-bottom: 10px;
+    }
+    
+    .success-modal-body {
+        margin-bottom: 12px;
+    }
+    
+    .success-modal-options {
+        gap: 6px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .success-modal {
+        backdrop-filter: none;
+    }
+    
+    .modal-btn:hover {
+        transform: none;
+    }
+}
+
+/* Touch device improvements */
+@media (hover: none) and (pointer: coarse) {
+    .modal-btn:hover {
+        transform: none;
+    }
+    
+    .modal-btn:active {
+        transform: scale(0.98);
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .success-modal-content {
+        border: 2px solid #000;
+    }
+    
+    .modal-btn {
+        border: 2px solid #000;
+    }
+}
+
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+    .success-modal-content {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Prevent text size adjustment on iOS */
+@supports (-webkit-touch-callout: none) {
+    .success-modal-content {
+        -webkit-text-size-adjust: 100%;
     }
 }
 
@@ -1217,6 +1807,8 @@ body.has-topbar {
     color: #666;
     border-bottom: 1px solid #e0e0e0;
     flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .session-modal-body {
@@ -1313,6 +1905,7 @@ body.has-topbar {
     
     .session-detail-content {
         max-height: 90vh;
+        border-radius: 12px;
     }
     
     .session-modal-header {
@@ -1324,25 +1917,33 @@ body.has-topbar {
     .session-modal-header h2 {
         margin-right: 0;
         font-size: 1.3rem;
+        text-align: center;
     }
     
+    /* KEEP META CONTENT SIDE BY SIDE ON MOBILE */
     .session-modal-meta {
-        flex-direction: column;
-        gap: 8px;
+        flex-direction: row; /* Changed from column to row */
+        gap: 15px;
         padding: 12px 15px;
+        font-size: 0.85rem;
     }
     
     .session-modal-body {
         padding: 15px;
     }
     
+    /* KEEP BUTTONS SIDE BY SIDE ON MOBILE */
     .session-modal-footer {
-        flex-direction: column-reverse;
+        flex-direction: row; /* Changed from column-reverse to row */
         padding: 15px;
+        gap: 10px;
     }
     
     .modal-btn {
-        width: 100%;
+        width: auto; /* Changed from 100% to auto */
+        padding: 12px 20px !important; /* Added horizontal padding */
+        font-size: 0.9rem;
+        flex: 1; /* Allow buttons to share space equally */
     }
     
     .session-option.user-answer::after,
@@ -1360,6 +1961,266 @@ body.has-topbar {
     .session-option.correct-answer::after {
         content: "Correct answer ✓";
     }
+}
+
+/* Tablet and smaller desktop adjustments */
+@media (max-width: 1024px) {
+    .session-detail-content {
+        max-width: 600px;
+    }
+    
+    .session-modal-header h2 {
+        font-size: 1.3rem;
+    }
+    
+    .session-question-text {
+        font-size: 1.1rem;
+    }
+}
+
+/* Medium mobile devices */
+@media (max-width: 480px) {
+    .session-detail-modal {
+        padding: 5px;
+    }
+    
+    .session-detail-content {
+        max-height: 95vh;
+        border-radius: 10px;
+    }
+    
+    .session-modal-header {
+        padding: 12px 12px 0 12px;
+    }
+    
+    .session-modal-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    /* Adjust meta content for very small screens */
+    .session-modal-meta {
+        padding: 10px 12px;
+        font-size: 0.8rem;
+        gap: 8px;
+    }
+    
+    .session-modal-body {
+        padding: 12px;
+    }
+    
+    .session-question {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+    }
+    
+    .session-question-text {
+        font-size: 0.95rem;
+        margin-bottom: 12px;
+    }
+    
+    .session-option {
+        padding: 6px 10px;
+        font-size: 0.9rem;
+    }
+    
+    .session-modal-footer {
+        padding: 12px;
+        gap: 8px;
+    }
+    
+    .modal-btn {
+        font-size: 0.85rem;
+        padding: 10px 15px !important;
+        position: relative;
+        top: 2px;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 360px) {
+    .session-modal-header h2 {
+        font-size: 1rem;
+    }
+    
+    /* Adjust meta content spacing for very small screens */
+    .session-modal-meta {
+        font-size: 0.75rem;
+        gap: 5px;
+    }
+    
+    .session-question-text {
+        font-size: 0.9rem;
+    }
+    
+    .session-option {
+        padding: 5px 8px;
+        font-size: 0.85rem;
+    }
+    
+    .modal-btn {
+        position: relative;
+        top: 2px;
+        font-size: 0.8rem;
+        padding: 8px 12px !important;
+    }
+}
+
+/* Landscape orientation for mobile devices */
+@media (max-height: 500px) and (orientation: landscape) {
+    .session-detail-content {
+        max-height: 95vh;
+        max-width: 90%;
+    }
+    
+    .session-modal-header {
+        padding: 15px 15px 0 15px;
+    }
+    
+    .session-modal-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    /* Keep meta content side by side in landscape */
+    .session-modal-meta {
+        padding: 10px 15px;
+        font-size: 0.8rem;
+        gap: 15px;
+    }
+    
+    .session-modal-body {
+        padding: 10px 15px;
+    }
+    
+    .session-question {
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+    }
+    
+    .session-question-text {
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+    
+    .session-option {
+        padding: 5px 10px;
+        margin: 1px 0;
+        font-size: 0.85rem;
+    }
+    
+    /* Keep buttons side by side in landscape */
+    .session-modal-footer {
+        padding: 12px 15px;
+        gap: 10px;
+    }
+    
+    .modal-btn {
+        padding: 8px 12px !important;
+        font-size: 0.8rem;
+        position: relative;
+        top: 2px;
+    }
+}
+
+/* Very small height devices */
+@media (max-height: 400px) {
+    .session-detail-content {
+        max-height: 98vh;
+    }
+    
+    .session-modal-header,
+    .session-modal-meta {
+        flex-shrink: 1;
+        padding: 8px 12px 0 12px;
+    }
+    
+    .session-modal-body {
+        padding: 8px 12px;
+        overflow-y: auto;
+    }
+    
+    .session-modal-footer {
+        padding: 8px 12px;
+        gap: 8px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .session-detail-content {
+        border: 2px solid #000;
+    }
+    
+    .session-modal-header {
+        border-bottom: 2px solid #000;
+    }
+    
+    .session-modal-meta {
+        border-bottom: 2px solid #000;
+    }
+    
+    .session-modal-footer {
+        border-top: 2px solid #000;
+    }
+    
+    .session-question {
+        border-bottom: 2px solid #000;
+    }
+    
+    .session-option {
+        border-width: 2px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .session-detail-modal {
+        backdrop-filter: none;
+    }
+    
+    .session-modal-footer .modal-btn.delete-btn:hover {
+        transform: none;
+    }
+}
+
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+    .session-detail-modal {
+        padding: 10px;
+    }
+    
+    .session-detail-content {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .session-modal-body {
+        overflow-y: scroll;
+    }
+}
+
+/* Prevent text size adjustment on iOS */
+@supports (-webkit-touch-callout: none) {
+    .session-detail-content {
+        -webkit-text-size-adjust: 100%;
+    }
+}
+
+/* Scrollbar styling for webkit browsers */
+.session-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.session-modal-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.session-modal-body::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.session-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
 /* Additional styles for session modal content */
@@ -1432,5 +2293,328 @@ body.has-topbar {
         right: 10px;
         left: 10px;
         text-align: center;
+    }
+}
+
+/* Additional responsive styles for comprehensive mobile support */
+
+/* Improved mobile layout for body and container */
+@media (max-width: 480px) {
+    body {
+        padding: 8px;
+    }
+    
+    .container {
+        padding: 8px;
+    }
+}
+
+/* Enhanced input section responsiveness */
+@media (max-width: 768px) {
+    .input-section {
+        padding: 20px;
+    }
+    
+    textarea {
+        min-height: 150px;
+        font-size: 0.95rem;
+    }
+    
+    .section-title {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .input-section {
+        padding: 15px;
+        border-radius: 12px;
+    }
+    
+    .section-title {
+        font-size: 1.2rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    textarea {
+        min-height: 120px;
+        font-size: 0.9rem;
+        padding: 12px;
+    }
+    
+    input[type="number"] {
+        padding: 10px;
+        font-size: 0.95rem;
+    }
+}
+
+/* Improved button responsiveness */
+@media (max-width: 768px) {
+    button {
+        padding: 10px 20px;
+        font-size: 0.95rem;
+        top: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 10px;
+        top: 0;
+    }
+}
+
+/* Enhanced stats summary responsiveness */
+@media (max-width: 768px) {
+    .stats-summary {
+        gap: 10px;
+        justify-content: center;
+    }
+    
+    .stat-card {
+        min-width: 100px;
+        padding: 12px;
+    }
+    
+    .stat-value {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-summary {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .stat-card {
+        width: 100%;
+        min-width: auto;
+    }
+}
+
+/* Improved analytics section responsiveness */
+@media (max-width: 768px) {
+    .analytics-section {
+        padding: 20px;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .analytics-section {
+        padding: 15px;
+    }
+    
+    .chart-container {
+        height: 200px;
+    }
+    
+    .analytics-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+}
+
+/* Enhanced sessions section responsiveness */
+@media (max-width: 1024px) {
+    .session-item {
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+    }
+    
+    .session-stats {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+        margin-top: 8px;
+    }
+    
+    .session-actions {
+        grid-column: 2;
+        grid-row: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .sessions-section {
+        padding: 20px;
+    }
+    
+    .session-item {
+        grid-template-columns: 1fr;
+        text-align: left;
+    }
+    
+    .session-stats {
+        grid-column: 1;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .session-actions {
+        grid-column: 1;
+        grid-row: auto;
+        justify-content: center;
+        margin-top: 10px;
+    }
+    
+    .search-sessions {
+        min-width: 100%;
+        margin-bottom: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .sessions-section {
+        padding: 15px;
+    }
+    
+    .session-stat {
+        min-width: auto;
+        flex: 1;
+        text-align: center;
+    }
+    
+    .view-session-btn, 
+    .delete-session-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Improved pagination responsiveness */
+@media (max-width: 480px) {
+    .pagination {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .pagination-btn {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Enhanced success modal responsiveness */
+@media (max-width: 480px) {
+    .success-modal-content {
+        margin: 10px;
+        padding: 20px 15px;
+    }
+    
+    .success-modal-header h2 {
+        font-size: 1.2rem;
+    }
+    
+    .success-modal-body p {
+        font-size: 1rem;
+    }
+    
+    .success-modal-options {
+        gap: 8px;
+    }
+    
+    .modal-btn {
+        padding: 12px;
+        font-size: 0.95rem;
+    }
+}
+
+
+/* Very small screen support */
+@media (max-width: 320px) {
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    .tagline {
+        font-size: 0.9rem;
+    }
+    
+    .section-title {
+        font-size: 1.1rem;
+    }
+    
+    .stat-value {
+        font-size: 1.1rem;
+    }
+    
+    .stat-label {
+        font-size: 0.8rem;
+    }
+}
+
+/* Touch device improvements */
+@media (hover: none) and (pointer: coarse) {
+    button:hover, 
+    .logout-btn:hover, 
+    .option:hover, 
+    .view-session-btn:hover, 
+    .delete-session-btn:hover {
+        transform: none;
+    }
+    
+    button:active, 
+    .logout-btn:active, 
+    .option:active, 
+    .view-session-btn:active, 
+    .delete-session-btn:active {
+        transform: scale(0.98);
+    }
+}
+
+/* High DPI screen support */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .logo {
+        image-rendering: -webkit-optimize-contrast;
+    }
+}
+
+/* Reduced motion for all interactive elements */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Print styles */
+@media print {
+    .auth-topbar,
+    button,
+    .sessions-controls,
+    .session-actions,
+    .pagination {
+        display: none !important;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+        padding: 0 !important;
+    }
+    
+    .container {
+        padding: 10px !important;
+        max-width: 100% !important;
+    }
+    
+    .input-section,
+    .flashcards-section,
+    .results-section,
+    .analytics-section,
+    .sessions-section {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+        page-break-inside: avoid;
     }
 }
