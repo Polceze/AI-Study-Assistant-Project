@@ -394,6 +394,124 @@ button .checkmark {
     margin: 20px 0;
 }
 
+/* Save Button Styles */
+.save-btn {
+    background: #6c757d; /* Gray when disabled */
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: not-allowed;
+    transition: all 0.4s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: block;
+    margin: 20px auto;
+    width: fit-content;
+    min-width: 200px;
+    opacity: 0.7;
+    transform: scale(1);
+    position: relative;
+}
+
+/* Enabled state styles */
+.save-btn:not(:disabled) {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    cursor: pointer;
+    opacity: 1;
+    animation: pulse 2s infinite, glow 1.5s infinite alternate;
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
+}
+
+.save-btn:not(:disabled):hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(40, 167, 69, 0.7);
+    animation: pulse 1s infinite, glow 0.8s infinite alternate;
+}
+
+.save-btn:not(:disabled):active {
+    transform: scale(0.98);
+}
+
+/* Pulse animation */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.03);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Glow animation */
+@keyframes glow {
+    from {
+        box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+    }
+    to {
+        box-shadow: 0 0 20px rgba(40, 167, 69, 0.8), 0 0 30px rgba(40, 167, 69, 0.4);
+    }
+}
+
+/* Checkmark animation for when saved */
+.save-btn.saved {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    animation: none;
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
+}
+
+.save-btn.saved::after {
+    content: " ✓";
+    font-weight: bold;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .save-btn {
+        padding: 12px 24px;
+        font-size: 1rem;
+        min-width: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .save-btn {
+        width: 100%;
+        max-width: 280px;
+        padding: 14px;
+    }
+    
+    .save-btn:not(:disabled) {
+        animation: pulse-mobile 2s infinite, glow 1.5s infinite alternate;
+    }
+    
+    @keyframes pulse-mobile {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.02);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+}
+
 /* Mobile responsiveness */
 @media (max-width: 1024px) {
     .flashcards-container {
