@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="header" style="position: relative; bottom: 80px;">
+    <!-- Back to App Button -->
+    <div style="margin: 20px 0;">
+        <button class="modal-btn secondary" onclick="navigateToApp()" style="margin: 0 auto; display: block;">
+            ← Back to Study App
+        </button>
+    </div>
+    <h1>Upgrade Your Study Experience</h1>
+    <p class="tagline">Choose the plan that works best for your learning journey</p>
+</header>
+
+<!-- Current Plan Info -->
+<div class="input-section" style="position: relative; bottom: 100px;">
+    <h2 class="section-title">Your Current Plan</h2>
+    <div class="subscription-info">
+        <div id="current-plan-display">
+            <span class="badge bg-info">Loading your plan...</span>
+        </div>
+        <div id="usage-stats">
+            <span class="sessions-remaining">Sessions used today: Loading...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Pricing Plans -->
+<div class="input-section" style="position: relative; bottom: 100px;">
+    <h2 class="section-title">Available Plans</h2>
+    <p class="upgrade-prompt">Upgrade to unlock more study sessions and features!</p>
+    
+    <div class="pricing-container">
+        <!-- Free Tier -->
+        <div class="pricing-card free-tier">
+            <h2>Free</h2>
+            <div class="price">KES 0<span>/day</span></div>
+            <ul class="features">
+                <li>3 study sessions per day</li>
+                <li>Basic flashcard generation</li>
+                <li>Progress tracking</li>
+                <li>Session history</li>
+            </ul>
+            <button class="pricing-btn disabled" disabled>Your Current Plan</button>
+        </div>
+
+        <!-- Silver Tier -->
+        <div class="pricing-card silver-tier">
+            <h2>Silver</h2>
+            <div class="price">KES 100<span>/month</span></div>
+            <ul class="features">
+                <li>300 study sessions per month</li>
+                <li>Advanced AI question generation</li>
+                <li>Enhanced progress analytics</li>
+                <li>Priority support</li>
+                <li>All Free features included</li>
+            </ul>
+            <button class="pricing-btn" onclick="upgradeToPlan('silver')">Upgrade to Silver</button>
+        </div>
+
+        <!-- Gold Tier -->
+        <div class="pricing-card gold-tier">
+            <h2>Gold</h2>
+            <div class="price">KES 1000<span>/year</span></div>
+            <ul class="features">
+                <li>4000 study sessions per year</li>
+                <li>Premium AI question generation</li>
+                <li>Advanced analytics & insights</li>
+                <li>24/7 priority support</li>
+                <li>Early access to new features</li>
+                <li>All Silver features included</li>
+            </ul>
+            <button class="pricing-btn" onclick="upgradeToPlan('gold')">Upgrade to Gold</button>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section -->
+<div class="input-section" style="position: relative; bottom: 100px;">
+    <h2 class="section-title">Frequently Asked Questions</h2>
+    <div class="faq-container">
+        <div class="faq-item">
+            <h3>How does the billing work?</h3>
+            <p>Silver plans are billed monthly and Gold plans are billed annually. You can cancel anytime.</p>
+        </div>
+        <div class="faq-item">
+            <h3>What happens to my unused sessions?</h3>
+            <p>Unused sessions don't roll over to the next billing period. We recommend choosing a plan that matches your study habits.</p>
+        </div>
+        <div class="faq-item">
+            <h3>Can I change plans later?</h3>
+            <p>Yes! You can upgrade or downgrade your plan at any time from your account settings.</p>
+        </div>
+        <div class="faq-item">
+            <h3>Is there a free trial for paid plans?</h3>
+            <p>We don't offer free trials, but you can start with our Free plan to experience the basic features before upgrading.</p>
+        </div>
+    </div>
+    
+    <!-- Additional Back to App Button at the bottom -->
+    <div style="text-align: center; margin-top: 30px;">
+        <button class="modal-btn secondary" onclick="navigateToApp()">
+            ← Return to Study App
+        </button>
+    </div>
+</div>
+
+<script>
+    // Make sure currentUser is available (redeclare if not)
+    if (typeof currentUser === 'undefined') {
+        var currentUser = null;
+    }
+
+    // Navigation function
+    function navigateToApp() {
+        window.location.href = '/';
+    }
+
+    // Function to update current plan display
+    async function updateCurrentPlanDisplay() {
+        try {
+            const response = await fetch('/user/tier-info');
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                const tierInfo = data.tier_info;
+                const currentPlanElement = document.getElementById('current-plan-display');
+                const usageStatsElement = document.getElementById('usage-stats');
+                
+                // Update current plan badge
+                currentPlanElement.innerHTML = `
+                    <span class="tier-badge ${tierInfo.tier}-tier">
+                        ${tierInfo.tier.charAt(0).toUpperCase() + tierInfo.tier.slice(1)} Plan
+                    </span>
+                `;
+                
+                // Update usage stats
+                usageStatsElement.innerHTML = `
+                    <span class="sessions-remaining">
+                        Sessions remaining: ${tierInfo.remaining_sessions}<br> 
+                        (resets ${tierInfo.reset_in})
+                    </span>
+                `;
+                
+                // Update button states
+                const freeBtn = document.querySelector('.free-tier .pricing-btn');
+                const silverBtn = document.querySelector('.silver-tier .pricing-btn');
+                const goldBtn = document.querySelector('.gold-tier .pricing-btn');
+                
+                // Reset all buttons
+                if (freeBtn) freeBtn.disabled = false;
+                if (silverBtn) silverBtn.disabled = false;
+                if (goldBtn) goldBtn.disabled = false;
+                
+                // Disable current plan button
+                if (tierInfo.tier === 'free' && freeBtn) {
+                    freeBtn.disabled = true;
+                    freeBtn.textContent = 'Your Current Plan';
+                } else if (tierInfo.tier === 'silver' && silverBtn) {
+                    silverBtn.disabled = true;
+                    silverBtn.textContent = 'Your Current Plan';
+                } else if (tierInfo.tier === 'gold' && goldBtn) {
+                    goldBtn.disabled = true;
+                    goldBtn.textContent = 'Your Current Plan';
+                }
+            } else {
+                console.error('Failed to load tier info:', data.message);
+                document.getElementById('current-plan-display').innerHTML = 
+                    '<span class="badge bg-info">Free Plan</span>';
+                document.getElementById('usage-stats').innerHTML = 
+                    '<span class="sessions-remaining">Please sign in to view usage</span>';
+            }
+        } catch (error) {
+            console.error('Error fetching tier info:', error);
+            document.getElementById('current-plan-display').innerHTML = 
+                '<span class="badge bg-info">Free Plan</span>';
+            document.getElementById('usage-stats').innerHTML = 
+                '<span class="sessions-remaining">Error loading usage data</span>';
+        }
+    }
+
+    // Function to handle plan upgrades
+    function upgradeToPlan(plan) {
+        // For now, show a message since payment integration is a separate phase
+        alert(`Thank you for your interest in the ${plan} plan! Payment integration will be available soon.`);
+    }
+
+    // Update tier info on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Upgrade page loaded, checking authentication...');
+        
+        // Change the top bar upgrade button to go back to main app
+        const upgradeBtn = document.querySelector('.upgrade-btn');
+        if (upgradeBtn) {
+            upgradeBtn.textContent = 'Back to App';
+            upgradeBtn.onclick = navigateToApp;
+        }
+        
+        // Check if user is authenticated and load tier info
+        checkAuthStatus().then(isAuthenticated => {
+            if (isAuthenticated) {
+                console.log('User is authenticated, loading tier info...');
+                updateCurrentPlanDisplay();
+                
+                // Also update the top bar tier info
+                if (typeof updateTierInfo === 'function') {
+                    updateTierInfo();
+                }
+            } else {
+                console.log('User not authenticated, showing free plan');
+                document.getElementById('current-plan-display').innerHTML = 
+                    '<span class="badge bg-info">Free Plan</span>';
+                document.getElementById('usage-stats').innerHTML = 
+                    '<span class="sessions-remaining">Sign in to track your usage</span>';
+            }
+        });
+    });
+
+    // Function to check authentication status
+    async function checkAuthStatus() {
+        try {
+            const response = await fetch('/auth/status');
+            const data = await response.json();
+            return data.authenticated === true;
+        } catch (error) {
+            console.error('Error checking auth status:', error);
+            return false;
+        }
+    }
+</script>
+{% endblock %}

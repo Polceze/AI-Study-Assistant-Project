@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 import os
 from dotenv import load_dotenv
 from models import Database
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import requests
 import json
 import re
@@ -52,6 +52,56 @@ def invalidate_user_cache(user_id):
     except Exception:
         pass
 
+def balance_correct_answers(questions):
+    """
+    Ensure correct answers are distributed across different positions (A, B, C, D)
+    to prevent patterns like all answers being 'A'
+    """
+    if not questions or len(questions) <= 1:
+        return questions
+    
+    positions = [0, 1, 2, 3]  # A, B, C, D
+    position_count = {0: 0, 1: 0, 2: 0, 3: 0}
+    
+    # Count current distribution
+    for q in questions:
+        pos = q['correctAnswer']
+        if pos in position_count:
+            position_count[pos] += 1
+    
+    # Check if we need to rebalance (if any position has more than its fair share)
+    max_allowed = (len(questions) // 4) + 1
+    needs_rebalancing = any(count > max_allowed for count in position_count.values())
+    
+    if not needs_rebalancing:
+        return questions  # Distribution is already good
+    
+    print(f"📊 Rebalancing answer positions. Current distribution: A={position_count[0]}, B={position_count[1]}, C={position_count[2]}, D={position_count[3]}")
+    
+    # Rebalance questions
+    for i, q in enumerate(questions):
+        current_pos = q['correctAnswer']
+        
+        # If this position is overused, consider swapping
+        if position_count[current_pos] > max_allowed:
+            # Find a less used position
+            new_pos = min(position_count, key=position_count.get)
+            
+            if new_pos != current_pos and position_count[new_pos] < max_allowed:
+                # Swap the correct answer with another option
+                correct_text = q['options'][current_pos]
+                other_text = q['options'][new_pos]
+                
+                q['options'][current_pos] = other_text
+                q['options'][new_pos] = correct_text
+                q['correctAnswer'] = new_pos
+                
+                position_count[current_pos] -= 1
+                position_count[new_pos] += 1
+                print(f"🔄 Swapped Q{i+1} from position {current_pos} to {new_pos}")
+    
+    print(f"✅ Balanced distribution: A={position_count[0]}, B={position_count[1]}, C={position_count[2]}, D={position_count[3]}")
+    return questions
 
 def generate_questions_with_gemini(notes, num_questions=6):
     """
@@ -74,7 +124,9 @@ def generate_questions_with_gemini(notes, num_questions=6):
         
         prompt = f"""
         You are an expert educational assistant. Generate {num_questions} diverse multiple-choice study questions based on the following notes. 
-        Each question should have exactly 4 plausible answer options (A, B, C, D), with only one correct answer. 
+        Each question should have exactly 4 plausible answer options (A, B, C, D), with only one correct answer. Make incorrect options plausible
+        and related to the topic - they should be common misconceptions or related concepts. You MUST vary the position of correct answers across questions. 
+        Do not place all correct answers in the same position (e.g., all As or all Bs).
         Questions should test memorization and understanding but should not be too obscure. Return the result in JSON format with the following structure for each question.
         Mark the correct answer with the corresponding letter (0 for A, 1 for B, 2 for C, 3 for D)
         
@@ -134,7 +186,17 @@ def generate_questions_with_gemini(notes, num_questions=6):
                                 json_str = generated_text[json_start:json_end]
                                 questions_data = json.loads(json_str)
                                 print(f"✅ Successfully generated {len(questions_data.get('questions', []))} questions")
-                                return questions_data.get('questions', []), "success"
+
+                                # Extract and process questions
+                                questions = questions_data.get('questions', [])
+                                
+                                # Apply post-processing to balance correct answers
+                                if questions:
+                                    questions = balance_correct_answers(questions)
+                                    print("✅ Applied post-processing to balance correct answers")
+                                
+                                # Return the PROCESSED questions
+                                return questions, "success"
                             else:
                                 print("❌ No JSON found in response")
                                 # Continue to next endpoint instead of failing
@@ -484,6 +546,49 @@ def chart_data():
         
     except Exception as e:
         return jsonify({"error": str(e)})
+
+
+@app.route('/user/tier-info')
+def user_tier_info():
+    """Get user's subscription tier information"""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"status": "error", "message": "Authentication required"}), 401
+
+        tier_info = db.get_user_tier_info(user_id)
+        if not tier_info:
+            return jsonify({"status": "error", "message": "User not found"}), 404
+
+        # Format time until reset for display
+        if tier_info['time_until_reset']:
+            hours, remainder = divmod(tier_info['time_until_reset'].total_seconds(), 3600)
+            minutes = remainder // 60
+            reset_display = f"{int(hours)}h {int(minutes)}m"
+        else:
+            reset_display = "Unknown"
+
+        return jsonify({
+            "status": "success",
+            "tier_info": {
+                "tier": tier_info['tier'],
+                "remaining_sessions": tier_info['remaining_sessions'],
+                "session_limit": tier_info['session_limit'],
+                "sessions_used_today": tier_info['sessions_used_today'],
+                "reset_in": reset_display,
+                "billing_period": tier_info['billing_period']
+            }
+        })
+
+    except Exception as e:
+        print(f"Error getting tier info: {e}")
+        return jsonify({"status": "error", "message": "Internal server error"}), 500
+    
+@app.route('/upgrade')
+def upgrade_page():
+    """Render the upgrade/pricing page"""
+    return render_template('upgrade.html')
+
 
 if __name__ == '__main__':
     # Use environment variable for host/port in production

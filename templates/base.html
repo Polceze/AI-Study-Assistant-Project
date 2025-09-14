@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ReviseAI - Study Cards Generator</title>
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+        <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+        <link rel="manifest" href="{{ url_for('static', filename='images/site.webmanifest') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
+    <body>
+        <!-- Top Bar -->
+        <div id="auth-topbar" class="auth-topbar" style="display: none;">
+            <div class="container">
+                <div class="auth-topbar-content">
+                    <img src="{{ url_for('static', filename='images/Logo1.png') }}" alt="ReviseAI Logo" class="logo">
+                    <div class="mobile-menu-toggle" id="mobile-menu-toggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+
+                    <div class="desktop-content">
+                        <div class="tier-management">
+                            <div class="tier-graphic" id="user-tier">Loading...</div>
+                            <div class="tier-info">
+                                <span class="sessions-remaining" id="sessions-remaining">Sessions remaining: Loading...</span>
+                                <span class="resets-in" id="resets-in">Resets in: Loading...</span>
+                            </div>
+                            <button class="upgrade-btn" id="upgrade-page-btn">Upgrade</button>
+                        </div>
+                        <div class="auth-right">
+                            <span class="user-email" id="topbar-email">Not signed in</span>
+                            <button id="logout-btn" class="logout-btn">Sign Out</button>
+                        </div>
+                    </div>
+                    <div class="mobile-menu" id="mobile-menu">
+                        <div class="mobile-tier-management">
+                            <div class="tier-graphic" id="mobile-user-tier">Loading...</div>
+                            <div class="tier-info">
+                                <span class="sessions-remaining" id="mobile-sessions-remaining">Sessions remaining: Loading...</span>
+                                <span class="resets-in" id="mobile-resets-in">Resets in: Loading...</span>
+                            </div>
+                            <button class="upgrade-btn" id="mobile-upgrade-page-btn">Upgrade</button>
+                        </div>
+                        <div class="mobile-auth-right">
+                            <span class="user-email" id="mobile-topbar-email">Not signed in</span>
+                            <button id="mobile-logout-btn" class="logout-btn">Sign Out</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Modal -->
+        <div id="auth-modal" class="auth-modal" style="display: none;">
+            <div class="auth-modal-content">
+                <div class="auth-modal-header">
+                    <img src="{{ url_for('static', filename='images/Logo.png') }}" alt="ReviseAI Logo" class="auth-logo">
+                    <h2>Welcome to ReviseAI</h2>
+                    <p>Enter your email to start studying</p>
+                </div>
+                <div class="auth-modal-body">
+                    <input type="email" id="auth-email" placeholder="your.email@example.com" autocomplete="email">
+                    <button id="auth-submit">sign in</button>
+                </div>
+                <div class="auth-modal-footer">
+                    <p>Just your email • That's your ReviseAI ID</p>
+                </div>
+            </div>
+        </div>
+        <div class="container">            
+            <div class="app-container">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+
+        <!-- Success Modal -->
+        <div id="success-modal" class="modal success-modal" style="display: none;">
+            <div class="modal-content success-modal-content">
+                <div class="success-modal-header">
+                    <div class="success-icon">✅</div>
+                    <h2>Session Saved Successfully!</h2>
+                </div>
+
+                <div class="success-modal-body">
+                    <p>Your study session has been saved to your history.</p>
+                    <p>What would you like to do next?</p>
+                </div>
+
+                <div class="success-modal-options">
+                    <button id="start-fresh" class="modal-btn secondary">
+                        Start Fresh with New Notes
+                    </button>
+
+                    <button id="continue-same-notes" class="modal-btn primary">
+                        Continue with Same Notes
+                    </button>
+
+                    <button id="view-progress" class="modal-btn tertiary">
+                        Stay in This Session
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session Detail Modal -->
+        <div id="session-detail-modal" class="session-detail-modal" style="display: none;">
+            <div class="modal-content session-detail-content">
+                <!-- Modal Header -->
+                <div class="session-modal-header">
+                    <h2 id="session-modal-title">Session Title Placeholder</h2>
+                </div>
+                
+                <div class="session-modal-meta">
+                    <span id="session-modal-date">Created: Loading...</span>
+                    <span id="session-modal-score">Score: 0% (0/0)</span>
+                </div>
+
+                <!-- Modal Body (Scrollable Content) -->
+                <div class="session-modal-body" id="session-questions-container">
+                    <!-- Questions will be dynamically inserted here by JavaScript -->
+                    <div class="question-placeholder">Loading session details...</div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="session-modal-footer">
+                    <button class="modal-btn delete-btn" id="modal-delete-session-btn">Delete Session</button>
+                    <button class="modal-btn secondary" id="modal-close-btn">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    </body>
+</html>

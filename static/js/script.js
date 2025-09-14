@@ -41,14 +41,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // Resize event listener for flashcard heights
     window.addEventListener('resize', debounce(setUniformCardHeights, 200));
     
-    // Save studycards button
+    // Save studycards button - INITIALIZE TO DISABLED STATE
     const saveBtn = document.getElementById('save-btn');
     if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Save study session';
+        saveBtn.title = 'Generate studycards first';
         saveBtn.addEventListener('click', saveFlashcards);
     }
     
-    // Load sessions with pagination
-    loadSessions(1); // Load first page initially
+    // Load sessions with pagination - BUT WAIT FOR AUTH TO COMPLETE
+    initAuth().then(isAuthenticated => {
+        if (isAuthenticated) {
+            loadSessions(1); // Load first page only after auth completes
+        } else {
+            // User not authenticated, show appropriate message
+            const container = document.getElementById('sessions-container');
+            container.innerHTML = '<p class="no-sessions">Please sign in to view your study sessions</p>';
+            
+            // Clear the chart and stats for logged out users
+            updateProgressChart([], 5);
+            updateSummaryStats([]);
+        }
+    });
     
     // Chart range selector event listener
     const rangeSelector = document.getElementById('sessions-range');
@@ -147,6 +162,36 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.reload();
         });
     }
+
+     // Add upgrade button listener
+    const upgradeBtn = document.getElementById('upgrade-page-btn');
+    if (upgradeBtn) {
+        upgradeBtn.addEventListener('click', navigateToUpgrade);
+    }
+
+    // Initialize mobile menu functionality
+    setTimeout(() => {
+        const isInitialized = initMobileMenu();
+        if (!isInitialized) {
+            console.log('Mobile menu not initialized yet, will retry after auth');
+        }
+    }, 1000); // Give the page time to load completely
+
+    // Add event listeners for NEW mobile menu buttons
+    const mobileUpgradeBtn = document.getElementById('mobile-upgrade-page-btn');
+    if (mobileUpgradeBtn) {
+        mobileUpgradeBtn.addEventListener('click', function() {
+            navigateToUpgrade();
+        });
+    }
+
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    if (mobileLogoutBtn) {
+        mobileLogoutBtn.addEventListener('click', function() {
+            handleLogout();
+        });
+    }
+
 });
 
 // Delegate click events for dynamically created "View" buttons
@@ -172,7 +217,7 @@ function generateFlashcards() {
     }
     
     if (count < 1 || count > 13) {
-        alert('Please enter a number between 1 and 9 for the number of questions.');
+        alert('Please enter a number between 1 and 12 for the number of questions.');
         return;
     }
     
@@ -256,7 +301,7 @@ function updateSaveButtonState() {
             `Please answer all ${unanswered} questions before saving` : 
             'Save your current session to your study history';
     } else {
-        // No studycards generated yet
+        // No studycards generated yet OR page just loaded
         saveBtn.disabled = true;
         saveBtn.textContent = 'Save study session';
         saveBtn.title = 'Generate studycards first';
@@ -777,8 +822,6 @@ function renderSessions(sessions) {
         item.innerHTML = `
             <div class="session-content">
                 <div class="session-topic">${session.title}</div>
-                <!-- REMOVE the session-date line below -->
-                <!-- <div class="session-date">${new Date(formatUTCDate(session.created_at)).toLocaleString()}</div> -->
             </div>
             <div class="session-stats">
                 <div class="session-stat session-questions">
@@ -855,7 +898,7 @@ function deleteSession(sessionId) {
 }
 
 function attemptAutoLogin(email) {
-    fetch('/auth/login', {
+    return fetch('/auth/login', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -867,46 +910,56 @@ function attemptAutoLogin(email) {
         if (data.status === 'success') {
             setUserAuthenticated(data.user);
             hideAuthModal();
+            return true; // Return true for success
         } else {
             showAuthModal();
+            return false; // Return false for failure
         }
     })
     .catch(error => {
         console.error('Auto-login failed:', error);
         showAuthModal();
+        return false; // Return false for failure
     });
 }
 
 // Check if user was previously authenticated
 function checkSavedAuth() {
-    const savedEmail = localStorage.getItem('userEmail');
-    const savedUserId = localStorage.getItem('userId');
-    
-    if (savedEmail && savedUserId) {
-        // Check if session is still valid
+    return new Promise((resolve) => {
+        const savedEmail = localStorage.getItem('userEmail');
+        const savedUserId = localStorage.getItem('userId');
+        
+        if (!savedEmail || !savedUserId) {
+            showAuthModal();
+            resolve(false); // Resolve with false for not authenticated
+            return;
+        }
+
+        // First check if we already have a valid session
         fetch('/auth/status')
             .then(response => response.json())
             .then(data => {
                 if (data.authenticated && data.user) {
+                    // We have a valid session
                     setUserAuthenticated(data.user);
                     hideAuthModal();
+                    resolve(true); // Resolve with true for authenticated
                 } else {
                     // Session expired, try to re-login
-                    attemptAutoLogin(savedEmail);
+                    attemptAutoLogin(savedEmail).then(resolve);
                 }
             })
-            .catch(() => {
-                attemptAutoLogin(savedEmail);
+            .catch(error => {
+                console.error('Auth status check failed:', error);
+                attemptAutoLogin(savedEmail).then(resolve);
             });
-    } else {
-        showAuthModal();
-    }
+    });
 }
 
 // Initialize auth (non-blocking initially)
 function initAuth() {
     setupAuthEventListeners();
-    checkSavedAuth();
+    return checkSavedAuth(); 
 }
 
 function setupAuthEventListeners() {
@@ -926,24 +979,46 @@ function setupAuthEventListeners() {
 
 function setUserAuthenticated(user) {
     currentUser = user;
-    document.getElementById('topbar-email').textContent = user.email;
-    document.getElementById('auth-topbar').style.display = 'block';
+    
+    // Update UI elements
+    const topbarEmail = document.getElementById('topbar-email');
+    const mobileTopbarEmail = document.getElementById('mobile-topbar-email');
+    const authTopbar = document.getElementById('auth-topbar');
+    
+    if (topbarEmail) topbarEmail.textContent = user.email;
+    if (mobileTopbarEmail) mobileTopbarEmail.textContent = user.email;
+    if (authTopbar) authTopbar.style.display = 'block';
+    
     document.body.classList.add('has-topbar');
     localStorage.setItem('userEmail', user.email);
     localStorage.setItem('userId', user.id);
 
-    // Reset to page 1 when user authenticates
-    currentPage = 1;
-
-    // Clear the chat area for new users
-    clearChatArea();
+    // Enable app interface but make sure save button is in correct state
+    enableAppInterface();
     
+    // Explicitly set save button to disabled state initially
+    const saveBtn = document.getElementById('save-btn');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Save study session';
+        saveBtn.title = 'Generate studycards first';
+    }
+
     // Clear old sessions data and reset stats
     allSessions = [];
-    updateProgressChart(allSessions, 5); // Clear the chart immediately
-    updateSummaryStats(allSessions); // Reset summary stats
+    updateProgressChart(allSessions, 5);
+    updateSummaryStats(allSessions);
     
-    loadSessions(1);
+    // Update tier information
+    updateTierInfo();
+    
+    // Load sessions - but only after a brief delay to ensure auth is fully processed
+    setTimeout(() => {
+        loadSessions(1);
+    }, 100);
+    
+    // Set interval to update tier info every minute
+    setInterval(updateTierInfo, 60000);
 }
 
 function handleLogin() {
@@ -1008,14 +1083,21 @@ function handleLogout() {
                 
                 // Clear sessions data, chart, and stats
                 allSessions = [];
-                updateProgressChart(allSessions, 5); // Clear the chart
+                if (progressChart) {
+                    updateProgressChart(allSessions, 5); // Clear the chart
+                }
                 updateSummaryStats(allSessions); // Reset summary stats
                 
-                // Show auth modal and disable interface
-                showAuthModal();
-                disableAppInterface();
+                // Disable the app interface
+                if (typeof disableAppInterface === 'function') {
+                    disableAppInterface();
+                }
                 
-                console.log("✅ User logged out successfully - chat area cleared");
+                // Show auth modal and hide topbar
+                showAuthModal();
+                hideTopBar();
+                
+                console.log("✅ User logged out successfully - app reset");
             }
         })
         .catch(error => {
@@ -1023,6 +1105,12 @@ function handleLogout() {
             // Even if logout fails, reset the UI state
             resetAuthButton();
             showAuthModal();
+            hideTopBar();
+            
+            // Still disable the interface on error
+            if (typeof disableAppInterface === 'function') {
+                disableAppInterface();
+            }
         });
 }
 
@@ -1055,7 +1143,10 @@ function showTopBar(email) {
 }
 
 function hideTopBar() {
-    document.getElementById('auth-topbar').style.display = 'none';
+    const topbar = document.getElementById('auth-topbar');
+    if (topbar) {
+        topbar.style.display = 'none';
+    }
     document.body.classList.remove('has-topbar');
 }
 
@@ -1182,6 +1273,7 @@ function hideSuccessModal() {
 }
 
 // Function to clear the chat/study area
+// Function to clear the chat/study area
 function clearChatArea() {
     // Clear flashcards
     flashcardsData = [];
@@ -1206,7 +1298,7 @@ function clearChatArea() {
         scoreContainer.textContent = 'Score: 0/0 (0%)';
     }
     
-    // Reset save button
+    // Reset save button to disabled state
     const saveBtn = document.getElementById('save-btn');
     if (saveBtn) {
         saveBtn.disabled = true;
@@ -1431,5 +1523,230 @@ function setupLogoRefresh() {
         logo.addEventListener('click', function() {           
             window.location.reload();
         });
+    }
+}
+
+// Function to fetch and update tier information
+async function updateTierInfo() {
+    try {
+        const response = await fetch('/user/tier-info');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            const tierInfo = data.tier_info;
+            
+            // Update tier graphic (both desktop and mobile)
+            const tierElement = document.getElementById('user-tier');
+            const mobileTierElement = document.getElementById('mobile-user-tier');
+            
+            if (tierElement) {
+                tierElement.textContent = tierInfo.tier.charAt(0).toUpperCase() + tierInfo.tier.slice(1) + ' Plan';
+                tierElement.className = `tier-graphic ${tierInfo.tier}-tier`;
+            }
+            
+            if (mobileTierElement) {
+                mobileTierElement.textContent = tierInfo.tier.charAt(0).toUpperCase() + tierInfo.tier.slice(1) + ' Plan';
+                mobileTierElement.className = `tier-graphic ${tierInfo.tier}-tier`;
+            }
+            
+            // Update sessions remaining (both)
+            const sessionsElement = document.getElementById('sessions-remaining');
+            const mobileSessionsElement = document.getElementById('mobile-sessions-remaining');
+            
+            if (sessionsElement) {
+                sessionsElement.textContent = `Sessions remaining: ${tierInfo.remaining_sessions}`;
+            }
+            if (mobileSessionsElement) {
+                mobileSessionsElement.textContent = `Sessions remaining: ${tierInfo.remaining_sessions}`;
+            }
+            
+            // Update reset time (both)
+            const resetElement = document.getElementById('resets-in');
+            const mobileResetElement = document.getElementById('mobile-resets-in');
+            
+            if (resetElement) {
+                resetElement.textContent = `Resets in: ${tierInfo.reset_in}`;
+            }
+            if (mobileResetElement) {
+                mobileResetElement.textContent = `Resets in: ${tierInfo.reset_in}`;
+            }
+        } else {
+            console.error('Failed to fetch tier info:', data.message);
+            // Fallback for both desktop and mobile
+            const fallbackText = 'Free Plan';
+            document.querySelectorAll('.tier-graphic').forEach(el => {
+                el.textContent = fallbackText;
+            });
+            document.querySelectorAll('.sessions-remaining').forEach(el => {
+                el.textContent = 'Sessions remaining: 3';
+            });
+            document.querySelectorAll('.resets-in').forEach(el => {
+                el.textContent = 'Resets in: 24h 0m';
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching tier info:', error);
+        // Fallback for both on error
+        const fallbackText = 'Free Plan';
+        document.querySelectorAll('.tier-graphic').forEach(el => {
+            el.textContent = fallbackText;
+        });
+        document.querySelectorAll('.sessions-remaining').forEach(el => {
+            el.textContent = 'Sessions remaining: 3';
+        });
+        document.querySelectorAll('.resets-in').forEach(el => {
+            el.textContent = 'Resets in: 24h 0m';
+        });
+    }
+}
+
+// Function to navigate To Upgrade when upgrade btn is clicked
+function navigateToUpgrade() {
+    window.location.href = '/upgrade';
+}
+
+// Add this function to your script.js
+function disableAppInterface() {
+    // Disable generate button
+    const generateBtn = document.getElementById('generate-btn');
+    if (generateBtn) generateBtn.disabled = true;
+    
+    // Disable save button
+    const saveBtn = document.getElementById('save-btn');
+    if (saveBtn) saveBtn.disabled = true;
+    
+    // Clear any existing studycards
+    flashcardsData = [];
+    const flashcardsContainer = document.getElementById('flashcards-container');
+    if (flashcardsContainer) {
+        flashcardsContainer.innerHTML = `
+            <div class="flashcard-placeholder">
+                <p>Please sign in to generate studycards</p>
+            </div>
+        `;
+    }
+    
+    // Reset score display
+    const scoreContainer = document.getElementById('score-container');
+    if (scoreContainer) scoreContainer.textContent = 'Score: 0/0 (0%)';
+    
+    // Clear notes
+    const notesTextarea = document.getElementById('study-notes');
+    if (notesTextarea) notesTextarea.value = '';
+    
+    // Clear sessions
+    const sessionsContainer = document.getElementById('sessions-container');
+    if (sessionsContainer) sessionsContainer.innerHTML = '<p class="no-sessions">Please sign in to view your study sessions</p>';
+    
+    // Clear chart
+    if (progressChart) {
+        progressChart.data.labels = [];
+        progressChart.data.datasets[0].data = [];
+        progressChart.data.datasets[1].data = [];
+        progressChart.update();
+    }
+    
+    // Reset stats
+    updateSummaryStats([]);
+}
+
+function enableAppInterface() {
+    // Enable generate button
+    const generateBtn = document.getElementById('generate-btn');
+    if (generateBtn) generateBtn.disabled = false;
+    
+    // Update save button state based on current conditions
+    updateSaveButtonState();
+    
+    // Reset any placeholder messages
+    const flashcardsContainer = document.getElementById('flashcards-container');
+    if (flashcardsContainer && flashcardsData.length === 0) {
+        flashcardsContainer.innerHTML = `
+            <div class="flashcard-placeholder">
+                <p>Your studycards will appear here after generating them from your notes.</p>
+            </div>
+        `;
+    }
+}
+
+// Mobile Menu Functions
+function initMobileMenu() {
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const mobileMenu = document.getElementById('mobile-menu');
+    
+    if (!mobileMenuToggle || !mobileMenu) {
+        console.log('Mobile menu elements not found');
+        return false;
+    }
+    
+    // Toggle mobile menu
+    mobileMenuToggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        this.classList.toggle('active');
+        mobileMenu.classList.toggle('active');
+        document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+    });
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', function(event) {
+        if (mobileMenu.classList.contains('active') && 
+            !mobileMenu.contains(event.target) && 
+            !mobileMenuToggle.contains(event.target)) {
+            closeMobileMenu();
+        }
+    });
+    
+    // Close menu on escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && mobileMenu.classList.contains('active')) {
+            closeMobileMenu();
+        }
+    });
+    
+    function closeMobileMenu() {
+        mobileMenuToggle.classList.remove('active');
+        mobileMenu.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    
+    // Close menu when clicking on menu items
+    const menuItems = mobileMenu.querySelectorAll('button, a');
+    menuItems.forEach(item => {
+        item.addEventListener('click', closeMobileMenu);
+    });
+    
+    console.log('Mobile menu initialized successfully');
+    return true;
+}
+
+// Function to sync data between desktop and mobile elements
+function syncMobileDesktopData() {
+    // Sync tier information
+    const desktopTier = document.getElementById('user-tier');
+    const mobileTier = document.getElementById('mobile-user-tier');
+    if (desktopTier && mobileTier) {
+        mobileTier.textContent = desktopTier.textContent;
+        mobileTier.className = desktopTier.className;
+    }
+    
+    // Sync sessions remaining
+    const desktopSessions = document.getElementById('sessions-remaining');
+    const mobileSessions = document.getElementById('mobile-sessions-remaining');
+    if (desktopSessions && mobileSessions) {
+        mobileSessions.textContent = desktopSessions.textContent;
+    }
+    
+    // Sync reset time
+    const desktopReset = document.getElementById('resets-in');
+    const mobileReset = document.getElementById('mobile-resets-in');
+    if (desktopReset && mobileReset) {
+        mobileReset.textContent = desktopReset.textContent;
+    }
+    
+    // Sync email
+    const desktopEmail = document.getElementById('topbar-email');
+    const mobileEmail = document.getElementById('mobile-topbar-email');
+    if (desktopEmail && mobileEmail) {
+        mobileEmail.textContent = desktopEmail.textContent;
     }
 }

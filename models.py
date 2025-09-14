@@ -3,6 +3,7 @@ from mysql.connector.pooling import MySQLConnectionPool
 from mysql.connector import Error
 from config import Config
 import json
+from datetime import datetime, timedelta
 
 class Database:
     def __init__(self):
@@ -34,7 +35,7 @@ class Database:
         """Return connection to pool"""
         if self.connection and self.connection.is_connected():
             self.connection.close()
-    
+
     def initialize_database(self):
         """Create necessary tables if they don't exist"""
         connection = self.connect()
@@ -90,7 +91,7 @@ class Database:
                 INSERT IGNORE INTO users (email) 
                 VALUES ('anonymous@example.com')
             """)
-            
+
             connection.commit()
             return True
             
@@ -380,3 +381,69 @@ class Database:
             if connection and connection.is_connected():
                 cursor.close()
                 self.disconnect()
+    
+    def get_user_tier_info(self, user_id):
+        """Get user's subscription tier and usage information"""
+        connection = self.connect()
+        if connection is None:
+            return None
+
+        try:
+            cursor = connection.cursor(dictionary=True)
+            
+            cursor.execute("""
+                SELECT 
+                    u.subscription_tier,
+                    u.sessions_used_today,
+                    u.last_session_reset,
+                    u.total_sessions_used,
+                    p.session_limit,
+                    p.billing_period
+                FROM users u
+                LEFT JOIN subscription_plans p ON u.subscription_tier = p.name
+                WHERE u.id = %s
+            """, (user_id,))
+            
+            result = cursor.fetchone()
+            
+            if result:
+                # Calculate remaining sessions and reset time
+                remaining_sessions = max(0, result['session_limit'] - result['sessions_used_today'])
+                
+                # Calculate time until reset based on billing period
+                reset_time = None
+                if result['billing_period'] == 'daily':
+                    # Next reset is tomorrow at same time as last reset
+                    reset_time = result['last_session_reset'] + timedelta(days=1)
+                elif result['billing_period'] == 'monthly':
+                    # Next reset is next month
+                    reset_time = result['last_session_reset'] + timedelta(days=30)
+                elif result['billing_period'] == 'yearly':
+                    # Next reset is next year
+                    reset_time = result['last_session_reset'] + timedelta(days=365)
+                
+                time_until_reset = reset_time - datetime.now() if reset_time else None
+                
+                return {
+                    'tier': result['subscription_tier'],
+                    'sessions_used_today': result['sessions_used_today'],
+                    'session_limit': result['session_limit'],
+                    'remaining_sessions': remaining_sessions,
+                    'last_reset': result['last_session_reset'],
+                    'next_reset': reset_time,
+                    'time_until_reset': time_until_reset,
+                    'billing_period': result['billing_period'],
+                    'total_sessions_used': result['total_sessions_used']
+                }
+            
+            return None
+
+        except Error as e:
+            print(f"Error getting user tier info: {e}")
+            return None
+        finally:
+            if connection and connection.is_connected():
+                cursor.close()
+                self.disconnect()
+
+    
