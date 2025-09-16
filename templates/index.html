@@ -1,125 +1,69 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div class="main-body">
-        <header>
-            <h1>ReviseAI - AI Study Assistant</h1>
-            <p class="tagline">Generate interactive revision cards from your study notes</p>
-        </header>
-        <section class="input-section">
-            <h2 class="section-title">
-                <span class="icon">📝</span>
-                Your Study Notes
-            </h2>
-            <textarea id="study-notes" placeholder="Paste your study notes here, or a description of a topic, or feel free to type anything!"></textarea>
+<div class="main-body">
+    <header>
+        <h1>ReviseAI - AI Study Assistant</h1>
+        <p class="tagline">Generate interactive revision cards from your study notes</p>
+    </header>
+    
+    <section class="input-section">
+        <h2 class="section-title">
+            <span class="icon">📝</span>
+            Your Study Notes
+        </h2>
+        <textarea id="study-notes" placeholder="Paste your study notes here, or a description of a topic, or feel free to type anything!"></textarea>
 
-            <!-- Add AI status indicator -->
+        <div class="generate-settings">
             <div id="ai-status" class="ai-status">
                 AI status: Ready
             </div>
-            
             <div class="settings">
-                <div class="num-questions">
+                <div>
                     <label for="num-questions">Number of Questions:</label>
+                </div>
+                <div>
                     <input type="number" id="num-questions" min="1" max="12" value="6">
                 </div>
-                <button id="generate-btn">Generate studycards</button>
+                <div>
+                    <button class="generate-btn" id="generate-btn">Generate studycards</button>
+                </div>                            
             </div>
-            
-            <div class="loader" id="loader">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
-        </section>
+        </div>
+                    
+        <div class="loader" id="loader">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </section>
+    
+    <section class="flashcards-section">
+        <h2 class="section-title">
+            <span class="icon">📋</span>
+            Your studycards
+        </h2>
         
-        <section class="flashcards-section">
-            <h2 class="section-title">
-                <span class="icon">📋</span>
-                Your studycards
-            </h2>
-            <!-- <p class="instructions">Select an answer, then click the card to flip and check if you were correct!</p> -->
-            
-            <div class="flashcards-container" id="flashcards-container">
-                <div class="flashcard-placeholder">
-                    <p>Your studycards will appear here after generating them from your notes.</p>
-                </div>
+        <div class="flashcards-container" id="flashcards-container">
+            <div class="flashcard-placeholder">
+                <p>Your studycards will appear here after generating them from your notes.</p>
             </div>
-        </section>
-        
-        <section class="results-section">
-            <h2 class="section-title">
-                <span class="icon">📊</span>
-                Your Results
-            </h2>
-
+        </div>
+    </section>
+    
+    <section class="results-section">
+        <h2 class="section-title">
+            <span class="icon">📊</span>
+            Your Results
+        </h2>
+        <div class="Results">
             <div class="score" id="score-container">
                 Score: 0/0 (0%)
             </div>
-
-            <button class="save-btn" id="save-btn" disabled>Save study session</button>
-        </section>
-
-        <section class="analytics-section">
-            <h2 class="section-title">
-                <span class="icon">📈</span>
-                Progress Analytics
-            </h2>
-            
-            <div class="stats-summary">
-                <div class="stat-card">
-                    <span class="stat-value" id="average-score">0%</span>
-                    <span class="stat-label">Average Score</span>
-                </div>
-
-                <div class="stat-card">
-                    <span class="stat-value" id="total-questions">0</span>
-                    <span class="stat-label">Total Questions</span>
-                </div>
-
-                <div class="stat-card">
-                    <span class="stat-value" id="sessions-count">0</span>
-                    <span class="stat-label">Study Sessions</span>
-                </div>
+            <div>
+                <button class="save-btn" id="save-btn" disabled>Save study session</button>
             </div>
-
-            <div class="analytics-controls">
-                <label for="sessions-range">Show last:</label>
-
-                <select id="sessions-range">
-                    <option value="5" selected>5 tests</option>
-                    <option value="10">10 tests</option>
-                    <option value="20">20 tests</option>
-                    <option value="all">All tests</option>
-                </select>
-            </div>
-            
-            <div class="chart-container">
-                <canvas id="progress-chart"></canvas>
-            </div>
-        </section>
-
-        <section class="sessions-section">
-            <div class="sessions-header">
-                <h2 class="section-title">
-                    <span class="icon">📚</span>
-                    Your Saved Sessions
-                </h2>
-
-                <div class="sessions-controls">
-                    <input type="text" class="search-sessions" placeholder="Search sessions..." 
-                        oninput="filterSessions(this.value)">
-                </div>
-            </div>
-            
-            <div id="sessions-container">
-                <p>No saved sessions yet.</p>
-            </div>
-            
-            <div id="pagination-controls" class="pagination">
-                <!-- Pagination controls will be rendered here -->
-            </div>
-        </section>
-    </div>
-    
+        </div>
+    </section>
+</div>
 {% endblock %}

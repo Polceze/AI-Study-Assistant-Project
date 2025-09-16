@@ -1,109 +1,101 @@
 {% extends "base.html" %}
 
 {% block content %}
-<header class="header" style="position: relative; bottom: 80px;">
-    <!-- Back to App Button -->
-    <div style="margin: 20px 0;">
-        <button class="modal-btn secondary" onclick="navigateToApp()" style="margin: 0 auto; display: block;">
-            ← Back to Study App
-        </button>
-    </div>
-    <h1>Upgrade Your Study Experience</h1>
-    <p class="tagline">Choose the plan that works best for your learning journey</p>
-</header>
-
-<!-- Current Plan Info -->
-<div class="input-section" style="position: relative; bottom: 100px;">
-    <h2 class="section-title">Your Current Plan</h2>
-    <div class="subscription-info">
-        <div id="current-plan-display">
-            <span class="badge bg-info">Loading your plan...</span>
+<div class="upgrade-page main-body"> 
+    <header class="header">
+        <div class="title">
+            <h1>Upgrade Your Study Experience</h1>
+            <p class="tagline">Choose the plan that works best for your learning journey</p>
         </div>
-        <div id="usage-stats">
-            <span class="sessions-remaining">Sessions used today: Loading...</span>
+    </header>
+
+    <!-- Current Plan Info -->
+    <div class="plan-section">
+        <h2 class="upgrade-title">Your Current Plan</h2>
+        <div class="subscription-info">
+            <div id="current-plan-display">
+                <span class="badge bg-info">Loading your plan...</span>
+            </div>
+            <div id="usage-stats">
+                <span class="sessions-remaining">Sessions used today: Loading...</span>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Pricing Plans -->
-<div class="input-section" style="position: relative; bottom: 100px;">
-    <h2 class="section-title">Available Plans</h2>
-    <p class="upgrade-prompt">Upgrade to unlock more study sessions and features!</p>
-    
-    <div class="pricing-container">
-        <!-- Free Tier -->
-        <div class="pricing-card free-tier">
-            <h2>Free</h2>
-            <div class="price">KES 0<span>/day</span></div>
-            <ul class="features">
-                <li>3 study sessions per day</li>
-                <li>Basic flashcard generation</li>
-                <li>Progress tracking</li>
-                <li>Session history</li>
-            </ul>
-            <button class="pricing-btn disabled" disabled>Your Current Plan</button>
-        </div>
+    <!-- Pricing Plans -->
+    <div class="pricing-section">
+        <h2 class="upgrade-title">Available Plans</h2>
+        <p class="upgrade-prompt">Upgrade to unlock more study sessions and features!</p>
+        
+        <div class="pricing-container">
+            <!-- Free Tier -->
+            <div class="pricing-card free-tier">
+                <h2>Free</h2>
+                <div class="price">KES 0<span>/day</span></div>
+                <ul class="features">
+                    <li>3 study sessions per day</li>
+                    <li>Basic flashcard generation</li>
+                    <li>Progress tracking</li>
+                    <li>Session history</li>
+                </ul>
+                <button class="pricing-btn disabled" disabled>Your Current Plan</button>
+            </div>
 
-        <!-- Silver Tier -->
-        <div class="pricing-card silver-tier">
-            <h2>Silver</h2>
-            <div class="price">KES 100<span>/month</span></div>
-            <ul class="features">
-                <li>300 study sessions per month</li>
-                <li>Advanced AI question generation</li>
-                <li>Enhanced progress analytics</li>
-                <li>Priority support</li>
-                <li>All Free features included</li>
-            </ul>
-            <button class="pricing-btn" onclick="upgradeToPlan('silver')">Upgrade to Silver</button>
-        </div>
+            <!-- Silver Tier -->
+            <div class="pricing-card silver-tier">
+                <h2>Silver</h2>
+                <div class="price">KES 100<span>/month</span></div>
+                <ul class="features">
+                    <li>300 study sessions per month</li>
+                    <li>Advanced AI question generation</li>
+                    <li>Enhanced progress analytics</li>
+                    <li>Priority support</li>
+                    <li>All Free features included</li>
+                </ul>
+                <button class="pricing-btn" onclick="upgradeToPlan('silver')">Upgrade to Silver</button>
+            </div>
 
-        <!-- Gold Tier -->
-        <div class="pricing-card gold-tier">
-            <h2>Gold</h2>
-            <div class="price">KES 1000<span>/year</span></div>
-            <ul class="features">
-                <li>4000 study sessions per year</li>
-                <li>Premium AI question generation</li>
-                <li>Advanced analytics & insights</li>
-                <li>24/7 priority support</li>
-                <li>Early access to new features</li>
-                <li>All Silver features included</li>
-            </ul>
-            <button class="pricing-btn" onclick="upgradeToPlan('gold')">Upgrade to Gold</button>
+            <!-- Gold Tier -->
+            <div class="pricing-card gold-tier">
+                <h2>Gold</h2>
+                <div class="price">KES 1000<span>/year</span></div>
+                <ul class="features">
+                    <li>4000 study sessions per year</li>
+                    <li>Premium AI question generation</li>
+                    <li>Advanced analytics & insights</li>
+                    <li>24/7 priority support</li>
+                    <li>Early access to new features</li>
+                    <li>All Silver features included</li>
+                </ul>
+                <button class="pricing-btn" id="gold-btn" onclick="upgradeToPlan('gold')">Upgrade to Gold</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- FAQ Section -->
-<div class="input-section" style="position: relative; bottom: 100px;">
-    <h2 class="section-title">Frequently Asked Questions</h2>
-    <div class="faq-container">
-        <div class="faq-item">
-            <h3>How does the billing work?</h3>
-            <p>Silver plans are billed monthly and Gold plans are billed annually. You can cancel anytime.</p>
+    <!-- FAQ Section -->
+    <div class="input-section">
+        <h2 class="upgrade-title">Frequently Asked Questions</h2>
+        <div class="faq-container">
+            <div class="faq-item">
+                <h3>How does the billing work?</h3>
+                <p>Silver plans are billed monthly and Gold plans are billed annually. You can cancel anytime.</p>
+            </div>
+            <div class="faq-item">
+                <h3>What happens to my unused sessions?</h3>
+                <p>Unused sessions don't roll over to the next billing period. We recommend choosing a plan that matches your study habits.</p>
+            </div>
+            <div class="faq-item">
+                <h3>Can I change plans later?</h3>
+                <p>Yes! You can upgrade or downgrade your plan at any time from your account settings.</p>
+            </div>
+            <div class="faq-item">
+                <h3>Is there a free trial for paid plans?</h3>
+                <p>We don't offer free trials, but you can start with our Free plan to experience the basic features before upgrading.</p>
+            </div>
         </div>
-        <div class="faq-item">
-            <h3>What happens to my unused sessions?</h3>
-            <p>Unused sessions don't roll over to the next billing period. We recommend choosing a plan that matches your study habits.</p>
-        </div>
-        <div class="faq-item">
-            <h3>Can I change plans later?</h3>
-            <p>Yes! You can upgrade or downgrade your plan at any time from your account settings.</p>
-        </div>
-        <div class="faq-item">
-            <h3>Is there a free trial for paid plans?</h3>
-            <p>We don't offer free trials, but you can start with our Free plan to experience the basic features before upgrading.</p>
-        </div>
-    </div>
-    
-    <!-- Additional Back to App Button at the bottom -->
-    <div style="text-align: center; margin-top: 30px;">
-        <button class="modal-btn secondary" onclick="navigateToApp()">
-            ← Return to Study App
-        </button>
     </div>
 </div>
+
 
 <script>
     // Make sure currentUser is available (redeclare if not)

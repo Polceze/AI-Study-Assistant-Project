@@ -3,11 +3,79 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Century Gothic", CenturyGothic, Geneva, AppleGothic, sans-serif;
+}
+
+.container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-top: 40px;
+    margin-bottom: 30px;
+    color: white;
+    width: 100%;
+}
+
+h1 {
+    color: #0a0f13;
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+}
+
+p {
+    margin-bottom: 15px;
+    color: #1a1919;
+    font-size: 0.9rem;
+}
+
+.tagline {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+/* Main app layout */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.main-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    gap: 40px;
+}
+
+/* Make each direct child of .main-body fill the viewport */
+.main-body > section {
+    width: 100%;         /* full screen width */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;      /* stack content vertically */
+    min-height: 60vh;     /* at least fill the screen */
+    height: auto;          /* allow growth when content overflows */
+    display: flex;
+    justify-content: center;   /* centers only if content is smaller than viewport */
+    box-sizing: border-box;
+    padding: 20px;   
+}
+
+.main-body > .results-section {
+    min-height: auto;       /* just enough for its content */
+    padding: 40px;
 }
 
 body {
-    background: linear-gradient(135deg, #6e8efb, #a777e3);
+    background-color: #ffffff;
     color: #333;
     line-height: 1.6;
     min-height: 100vh;
@@ -25,46 +93,72 @@ body {
     width: 100%;
     height: 60px;
     background: white;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-bottom: 1px solid #e0e0e0;
     z-index: 1000;
+    padding: 12px 0;
+}
+
+.tier-management {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 0 20px;
+    height: 100%;
+    position: absolute;
+    gap: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 1200px;
+    width: 100%;
+    box-sizing: border-box;
+    top: -7px;
 }
 
 .auth-topbar-content {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
+    width: 100%;
     height: 100%;
-    
+    position: relative;
+}
+
+.auth-right {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* spacing between items */
+    font-size: 0.9rem;
+    color: #333;
+    font-size: 0.8rem;
+    transform: translateY(-5px);
 }
 
 .user-email {
-    font-weight: 600;
-    color: #6e8efb;
-    font-size: 0.9rem;
+    color: #131313;
+}
+
+.separator {
+    color: #aaa; /* subtle line */
 }
 
 .logout-btn {
-    background: linear-gradient(135deg, #fb776e 0%, #e37777 100%);
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
+    color: #0073e6;     
+    text-decoration: none;
     cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 600;
-    box-shadow: 0 2px 6px rgba(110, 142, 251, 0.3);
-    transform: translateY(-15px);
-    transition: all 0.3s ease;
+    font-size: 0.8rem;
 }
 
 .logout-btn:hover {
-    background: linear-gradient(135deg, #f96c5a 0%, #e36666 100%);
-    transform: translateY(-17px);
-    box-shadow: 0 4px 8px rgba(110, 142, 251, 0.4);
+    text-decoration: underline;
 }
+
+.logout-btn:visited {
+    color: #0073e6; /* force same color even after click */
+}
+
 
 /* Ensure content doesn't hide behind fixed bar */
 body.has-topbar {
@@ -73,76 +167,35 @@ body.has-topbar {
 
 /* Auth Top Bar */
 .logo {
+    position: absolute;
+    left: 20px;
     height: 35px; 
     width: auto; 
     display: block;
     cursor: pointer;
-    transform: translateY(-15px);
+    transform: translateY(-10px);
     transition: transform 0.2s;
 }
 
 .logo:hover {
-    transform: translateY(-17px);
-}
-
-.upgrade-btn {
-    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-    color: white;
-    border: none;
-    padding: 12px 28px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    box-shadow: 0 2px 6px rgba(39, 174, 96, 0.3);
-    transform: translateY(-15px);
-    transition: all 0.3s ease;
-}
-
-.upgrade-btn:hover {
-    background: linear-gradient(135deg, #229954 0%, #27ae60 100%);
-    transform: translateY(-17px);
-    box-shadow: 0 4px 8px rgba(39, 174, 96, 0.4);
-}
-
-.auth-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: linear-gradient(135deg, #f8f9ff 0%, #f0f3ff 100%);
-    padding: 10px 15px;
-    border-radius: 12px;
-    border: 1px solid #e6e9ff;
-    transform: translateY(-18px);
-}
-
-.tier-management {
-    display: flex;
-    align-items: center;
-    gap: 50px;
-    padding: 2px 15px;
-    border-radius: 12px;
-    border: 1px solid #e6e9ff;
-    transform: translateY(-18px);
+    transform: translateY(-12px);
 }
 
 .tier-graphic {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100px;
-    height: 32px;
+    padding: 8px 20px;
     border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 500;
     text-transform: uppercase;
-    color: white;
+    color: rgb(253, 251, 251);
     transition: all 0.3s ease;
 }
 
 .tier-graphic.free-tier {
-    background: linear-gradient(135deg, #a5a4a4 0%, #817f7f 100%);
+    background: linear-gradient(135deg, #a6b1c0 0%, #838d9e 100%);
 }
 
 .tier-graphic.silver-tier {
@@ -160,19 +213,8 @@ body.has-topbar {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 1px;
-}
-
-.sessions-remaining {
-    font-size: 0.9rem;
-    color: #666;
-    font-weight: 500;
-}
-
-.resets-in {
-    font-size: 0.9rem;
-    color: #666;
-    font-weight: 500;
+    font-size: 0.8rem;
+    color: #222121;
 }
 
 /* Loading state */
@@ -180,6 +222,84 @@ body.has-topbar {
     content: "Loading...";
     color: #999;
 }
+
+/* Sidebar styles */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: auto;
+  width: 200px;
+  padding-top: 60px; /* leave space for topbar */
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+  border-radius: 10px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar li {
+  margin: 0;
+}
+
+.sidebar a {
+  color: #080808;
+  text-decoration: none;
+  font-size: 0.95rem;
+  padding: 15px 20px;
+  display: block;
+  transition: background 0.2s ease;
+}
+
+.sidebar a:hover {
+    background: rgba(109, 131, 129, 0.301);
+    border-radius: 8px;
+}
+
+.sidebar a.active {
+    background: rgba(152, 211, 245, 0.479);
+    color: #0073e6;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+/* Offset main content */
+main, .main-body {
+  margin-left: 30px;
+  padding: 20px;
+}
+
+/* Special styling for the upgrade link */
+.sidebar .upgrade a {
+  display: block;
+  padding: 12px 20px;
+  margin: 10px 15px;
+  text-align: center;
+  font-weight: 500;
+  color: #080808;
+  border: 2px solid transparent;
+  border-radius: 8px;
+
+  /* Subtle background */
+  background: 
+    linear-gradient(#fcfafa, #fcfafa) padding-box,  
+    linear-gradient(90deg, #6e8efb, #a777e3) border-box; /* border gradient */
+  
+  background-clip: padding-box, border-box;
+  background-origin: border-box;
+  transition: transform 0.15s ease, background 0.3s ease;
+}
+
+.sidebar .upgrade a:hover {
+  background: 
+    linear-gradient(#e9e8e8, #ebeaea) padding-box,   /* slightly lighter on hover */
+    linear-gradient(90deg, #63c563, #75b865) border-box;
+}
+
 
 @media (max-width: 768px) {
     body.has-topbar {
@@ -337,55 +457,15 @@ body.has-topbar {
     }
 }
 
-.container {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-header {
-    text-align: center;
-    margin-top: 40px;
-    margin-bottom: 30px;
-    color: white;
-    width: 100%;
-}
-
-h1 {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.tagline {
-    font-size: 1.2rem;
-    opacity: 0.9;
-}
-
-/* Main app layout */
-.app-container {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    width: 100%;
-}
-
-.main-body {
-    display: flex;
-    flex-direction: column;
-    gap: 20px; /* This creates equal spacing between all sections */
-    width: 100%;
-}
-
 /* Input section */
 .input-section {
     background: white;
     border-radius: 15px;
     padding: 25px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     width: 100%;
     margin-top: -20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 #study-notes {
@@ -396,7 +476,7 @@ h1 {
 .section-title {
     font-size: 1.5rem;
     margin-bottom: 20px;
-    color: #6e8efb;
+    color: #0a0d16;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -422,31 +502,63 @@ textarea:focus {
     border-color: #6e8efb;
 }
 
-.settings {
+.generate-settings {
     display: flex;
     flex-wrap: wrap;
+    flex-direction: row;
     gap: 15px;
     margin: 20px 0;
     align-items: center;
+    font-size: 0.9rem;
+}
+.generate-btn {
+    transform: translateY(-15px);
+    font-size: 0.9rem;
+    padding: 10px 30px;
+    background-color:rgb(12, 161, 32);
+    color: #fafcfb;
+
 }
 
-.num-questions {
-    flex: 1;
-    min-width: 200px;
+.generate-btn:hover {
+    transform: translateY(-17px);
+    background-color:rgb(11, 141, 28);    
+}
+
+.generate-btn:disabled {
+    transform: translateY(-15px);
+    background: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.settings {
+    gap: 15px;
+    margin: 20px 0;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 0 20px;
+    height: 100%;
+    position: absolute;
+    gap: 30px;
+    left: 50%;
+    max-width: 1200px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 label {
     font-weight: 500;
-    margin-bottom: 5px;
     display: block;
 }
 
 input[type="number"] {
     width: 100%;
-    padding: 12px;
+    padding: 8px;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
 button {
@@ -485,14 +597,16 @@ button:disabled {
 /* AI Status Indicator */
 .ai-status {
     padding: 10px;
+    background-color: #ebe9e9;
     border-radius: 5px;
     margin: 10px 0;
-    font-weight: 500;
+    font-weight: 800;
+    color: #208b39;
 }
 
 .ai-status.ai {
-    background-color: #d4edda;
-    color: #155724;
+    background-color: #37d85c;
+    color: #144b21;
     border: 1px solid #c3e6cb;
 }
 
@@ -511,11 +625,13 @@ button:disabled {
 /* Flashcards section */
 .flashcards-section {
     background: white;
+    border-top: 1px solid #e0e0e0;
     border-radius: 15px;
     padding: 25px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     width: 100%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
+
 
 .flashcards-container {
     display: grid;
@@ -707,10 +823,27 @@ button .checkmark {
 /* Results section */
 .results-section {
     background: white;
+    border-bottom: 1px solid #e0e0e0;
+    border-top: 1px solid #e0e0e0;
     border-radius: 15px;
     padding: 25px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     width: 100%;
+    font-size: 0.9rem;
+    min-height: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.Results {
+    gap: 15px;
+    margin: 20px 0;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    padding: 0 20px;
+    position: absolute;
+    max-width: 1200px;
+    width: 100%;
+    transform: translateX(10%);
 }
 
 .score {
@@ -726,9 +859,7 @@ button .checkmark {
     background: #6c757d; /* Gray when disabled */
     color: white;
     border: none;
-    padding: 14px 28px;
     border-radius: 10px;
-    font-size: 1.1rem;
     font-weight: 600;
     cursor: not-allowed;
     transition: all 0.4s ease;
@@ -739,12 +870,14 @@ button .checkmark {
     min-width: 200px;
     opacity: 0.7;
     transform: scale(1);
-    position: relative;
+    font-size: 0.9rem;
+    padding: 10px 30px;
+    top: -2px;
 }
 
 /* Enabled state styles */
 .save-btn:not(:disabled) {
-    background: linear-gradient(135deg, #28a745, #20c997);
+    background: linear-gradient(135deg, #28a745, #26c920);
     cursor: pointer;
     opacity: 1;
     animation: pulse 2s infinite, glow 1.5s infinite alternate;
@@ -1916,7 +2049,7 @@ button .checkmark {
 }
 
 .modal-btn.secondary:hover {
-    background: #218838;
+    background: #208b39;
     transform: translateY(-2px);
 }
 
@@ -2877,10 +3010,48 @@ button .checkmark {
 }
 
 /* Upgrade Page Specific Styles */
-.faq-container {
+.upgrade-page {
+    gap: 40px; 
+    font-size: 0.9rem;
+}
+
+.plan-section {
     display: flex;
-    flex-direction: column;
-    gap: 15px;
+    flex-direction: row;
+    gap: 60px;
+    flex-wrap: wrap;
+}
+
+.plan-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    margin-top: -20px;
+}
+
+/* Ensure child elements within input sections grow properly */
+.subscription-info,
+.pricing-container,
+.faq-container {
+    flex: 1;
+    min-width: 300px; /* Prevent elements from getting too narrow */
+}
+
+.upgrade-title {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    color: #6e8efb;
+}
+
+.pricing-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    margin-top: -20px;
 }
 
 .faq-item {
@@ -2893,7 +3064,7 @@ button .checkmark {
 .faq-item h3 {
     color: #6e8efb;
     margin-bottom: 10px;
-    font-size: 1.1rem;
+    font-size: 1rem;
 }
 
 .faq-item p {
@@ -2907,7 +3078,6 @@ button .checkmark {
     padding: 8px 16px;
     border-radius: 20px;
     font-size: 0.9rem;
-    font-weight: 600;
 }
 
 .bg-info {
@@ -2937,7 +3107,7 @@ button .checkmark {
 .pricing-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 25px;
+    gap: 45px;
     margin-top: 20px;
 }
 
@@ -2977,12 +3147,12 @@ button .checkmark {
 
 .pricing-card h2 {
     color: #6e8efb;
-    font-size: 1.8rem;
+    font-size: 1.4rem;
     margin-bottom: 15px;
 }
 
 .pricing-card .price {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: bold;
     color: #333;
     margin-bottom: 25px;
@@ -3002,7 +3172,7 @@ button .checkmark {
 }
 
 .pricing-card .features li {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: #666;
     margin-bottom: 12px;
     position: relative;
@@ -3023,13 +3193,17 @@ button .checkmark {
     background: #6e8efb;
     color: white;
     border: none;
-    padding: 15px 30px;
+    padding: 10px 20px;
     border-radius: 8px;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     width: 100%;
     transition: all 0.3s ease;
+}
+
+#gold-btn {
+    background: #b19c28;
 }
 
 .pricing-btn:hover {

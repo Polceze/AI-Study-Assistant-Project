@@ -589,6 +589,15 @@ def upgrade_page():
     """Render the upgrade/pricing page"""
     return render_template('upgrade.html')
 
+@app.route('/analytics')
+def analytics():
+    return render_template('analytics.html')
+
+
+@app.route('/sessions')
+def sessions():
+    return render_template('sessions.html')
+
 
 if __name__ == '__main__':
     # Use environment variable for host/port in production

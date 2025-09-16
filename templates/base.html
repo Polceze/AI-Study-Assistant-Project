@@ -12,11 +12,31 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </head>
     <body>
+        <!-- Sidebar -->
+        <nav class="sidebar">
+             <ul class="upgrade">
+                <li><a href="/upgrade">Upgrade</a></li>
+            </ul>
+            <ul>
+                <li style="white-space: pre"><a href="/" class="{% if request.path == '/' %}active{% endif %}">🏠      Home</a></li>
+                <li style="white-space: pre"><a href="/analytics" class="{% if request.path == '/analytics' %}active{% endif %}">📊      Analytics</a></li>
+                <li style="white-space: pre"><a href="/sessions" class="{% if request.path == '/sessions' %}active{% endif %}">📚      My Sessions</a></li>
+                <li style="white-space: pre"><a href="/contact" class="{% if request.path == '/contact' %}active{% endif %}">📩      Contact</a></li>
+            </ul>
+        </nav>
         <!-- Top Bar -->
         <div id="auth-topbar" class="auth-topbar" style="display: none;">
             <div class="container">
+                 <img src="{{ url_for('static', filename='images/Logo1.png') }}" alt="ReviseAI Logo" class="logo">
                 <div class="auth-topbar-content">
-                    <img src="{{ url_for('static', filename='images/Logo1.png') }}" alt="ReviseAI Logo" class="logo">
+                    <div class="tier-management">
+                        <div class="tier-graphic" id="user-tier">Loading...</div>
+                        <div class="tier-info">
+                            <span class="sessions-remaining" id="sessions-remaining">Sessions remaining: Loading...</span>
+                            <span class="resets-in" id="resets-in">Resets in: Loading...</span>
+                        </div>
+                        <button class="upgrade-btn" id="upgrade-page-btn" style="display: none;">Upgrade</button>
+                    </div>
                     <div class="mobile-menu-toggle" id="mobile-menu-toggle">
                         <span></span>
                         <span></span>
@@ -24,17 +44,10 @@
                     </div>
 
                     <div class="desktop-content">
-                        <div class="tier-management">
-                            <div class="tier-graphic" id="user-tier">Loading...</div>
-                            <div class="tier-info">
-                                <span class="sessions-remaining" id="sessions-remaining">Sessions remaining: Loading...</span>
-                                <span class="resets-in" id="resets-in">Resets in: Loading...</span>
-                            </div>
-                            <button class="upgrade-btn" id="upgrade-page-btn">Upgrade</button>
-                        </div>
                         <div class="auth-right">
                             <span class="user-email" id="topbar-email">Not signed in</span>
-                            <button id="logout-btn" class="logout-btn">Sign Out</button>
+                            <span class="separator">|</span>
+                            <a href="#" id="logout-btn" class="logout-btn">Sign Out</a>
                         </div>
                     </div>
                     <div class="mobile-menu" id="mobile-menu">

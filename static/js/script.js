@@ -553,9 +553,13 @@ function saveFlashcards() {
 }
 
 function initProgressChart() {
-    const ctx = document.getElementById('progress-chart').getContext('2d');
-    
-    // Initial empty chart
+    const canvas = document.getElementById('progress-chart');
+    if (!canvas) {
+        return null;
+    }
+
+    const ctx = canvas.getContext('2d');
+
     progressChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -611,10 +615,17 @@ function initProgressChart() {
             }
         }
     });
+
+    return progressChart;
 }
 
+
 function updateProgressChart(sessions, limit = 5) {  // Default is 5
-    if (!progressChart) initProgressChart();
+    // Ensure chart exists
+    if (!progressChart) {
+        progressChart = initProgressChart();
+        if (!progressChart) return; // No chart on this page
+    }
 
     if (!sessions || sessions.length === 0) {
         // Clear chart if no data
@@ -624,27 +635,28 @@ function updateProgressChart(sessions, limit = 5) {  // Default is 5
         progressChart.update();
         return;
     }
-    
+
     // Sort by date descending (most recent first) and take the last 'limit' sessions
     const sortedSessions = sessions
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))  // ← DESCENDING
-        .slice(0, limit);  // ← Take first 'limit' sessions (most recent)
-    
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, limit);
+
     // Reverse for chart to show chronological order left to right
     const chartSessions = [...sortedSessions].reverse();
-    
-    const labels = chartSessions.map(session => 
+
+    const labels = chartSessions.map(session =>
         new Date(session.created_at).toLocaleDateString()
     );
-    
+
     const scores = chartSessions.map(session => session.score_percentage);
     const questionCounts = chartSessions.map(session => session.total_questions);
-    
+
     progressChart.data.labels = labels;
     progressChart.data.datasets[0].data = scores;
     progressChart.data.datasets[1].data = questionCounts;
     progressChart.update();
 }
+
 
 // Load saved sessions
 function loadSessions(page = 1) {
@@ -723,6 +735,12 @@ function loadSessions(page = 1) {
 
 // Render paginated sessions
 function renderPaginatedSessions() {
+    const container = document.getElementById("sessions-container");
+    const pagination = document.getElementById("pagination-controls");
+    if (!container || !pagination) {
+        return;
+    }
+
     // Sort sessions by most recent first
     const sortedSessions = [...allSessions].sort((a, b) => 
         new Date(b.created_at) - new Date(a.created_at)
@@ -735,6 +753,7 @@ function renderPaginatedSessions() {
     renderSessions(paginatedSessions);
     renderPaginationControls();
 }
+
 
 // Render pagination controls
 function renderPaginationControls() {
@@ -772,29 +791,39 @@ function changePage(page) {
 
 // Summary Statistics
 function updateSummaryStats(sessions) {
-    // Ensure sessions is always an array
-    if (!sessions || sessions.length === 0) {
-        document.getElementById('average-score').textContent = '0%';
-        document.getElementById('total-questions').textContent = '0';
-        document.getElementById('sessions-count').textContent = '0';
+    const avgScoreEl = document.getElementById("average-score");
+    const totalQuestionsEl = document.getElementById("total-questions");
+    const sessionsCountEl = document.getElementById("sessions-count");
+
+    if (!avgScoreEl || !totalQuestionsEl || !sessionsCountEl) {
         return;
     }
-    
-    // Calculate average score
-    const totalScore = sessions.reduce((sum, session) => sum + (session.score_percentage || 0), 0);
-    const averageScore = Math.round(totalScore / sessions.length);
-    
-    // Calculate total questions
-    const totalQuestions = sessions.reduce((sum, session) => sum + (session.total_questions || 0), 0);
-    
-    document.getElementById('average-score').textContent = `${averageScore}%`;
-    document.getElementById('total-questions').textContent = totalQuestions;
-    document.getElementById('sessions-count').textContent = sessions.length;
+
+    if (!sessions || sessions.length === 0) {
+        avgScoreEl.textContent = "0%";
+        totalQuestionsEl.textContent = "0";
+        sessionsCountEl.textContent = "0";
+        return;
+    }
+
+    const totalSessions = sessions.length;
+    const totalQuestions = sessions.reduce((sum, s) => sum + s.total_questions, 0);
+    const avgScore =
+        sessions.reduce((sum, s) => sum + (s.score_percentage || 0), 0) / totalSessions;
+
+    avgScoreEl.textContent = `${avgScore.toFixed(1)}%`;
+    totalQuestionsEl.textContent = totalQuestions;
+    sessionsCountEl.textContent = totalSessions;
 }
+
 
 // Fuction to Render Sessions
 function renderSessions(sessions) {
     const container = document.getElementById('sessions-container');
+    if (!container) {
+        return;
+    }
+
     container.innerHTML = '';
 
     if (!Array.isArray(sessions)) {
@@ -804,7 +833,7 @@ function renderSessions(sessions) {
     }
 
     if (sessions.length === 0) {
-        if (currentPage > 1) {
+        if (typeof currentPage !== "undefined" && currentPage > 1) {
             container.innerHTML = '<p>No more sessions on this page.</p>';
         } else {
             container.innerHTML = '<p>No saved sessions yet.</p>';
@@ -854,6 +883,7 @@ function renderSessions(sessions) {
         });
     });
 }
+
 
 // Filter sessions by search term
 function filterSessions(searchTerm) {

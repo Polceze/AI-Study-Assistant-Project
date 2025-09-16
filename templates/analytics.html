@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="main-body">
+    <header>
+        <h1>Your Progress Analytics</h1>
+        <p class="tagline">Track your study performance over time</p>
+    </header>
+
+    <section class="analytics-section">
+        <h2 class="section-title">
+            <span class="icon">📈</span>
+            Progress Analytics
+        </h2>
+        
+        <div class="stats-summary">
+            <div class="stat-card">
+                <span class="stat-value" id="average-score">0%</span>
+                <span class="stat-label">Average Score</span>
+            </div>
+
+            <div class="stat-card">
+                <span class="stat-value" id="total-questions">0</span>
+                <span class="stat-label">Total Questions</span>
+            </div>
+
+            <div class="stat-card">
+                <span class="stat-value" id="sessions-count">0</span>
+                <span class="stat-label">Study Sessions</span>
+            </div>
+        </div>
+
+        <div class="analytics-controls">
+            <label for="sessions-range">Show last:</label>
+
+            <select id="sessions-range">
+                <option value="5" selected>5 tests</option>
+                <option value="10">10 tests</option>
+                <option value="20">20 tests</option>
+                <option value="all">All tests</option>
+            </select>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="progress-chart"></canvas>
+        </div>
+    </section>
+</div>
+{% endblock %}
