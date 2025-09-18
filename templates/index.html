@@ -3,8 +3,8 @@
 {% block content %}
 <div class="main-body">
     <header>
-        <h1>ReviseAI - AI Study Assistant</h1>
-        <p class="tagline">Generate interactive revision cards from your study notes</p>
+        <h1>ReviseAI</h1>
+        <p class="tagline">Interactive AI Assistant That Tests Your Understanding</p>
     </header>
     
     <section class="input-section">
@@ -19,11 +19,37 @@
                 AI status: Ready
             </div>
             <div class="settings">
-                <div>
-                    <label for="num-questions">Number of Questions:</label>
+                <div class="setting-1">
+                    <div>
+                        <label for="question-difficulty" class="sr-only">Questions difficulty:</label>
+                    </div>
+                    <div>
+                        <select id="question-difficulty" name="question_difficulty" aria-label="Question difficulty">
+                            <option value="normal" selected>Normal</option>
+                            <option value="difficult">Difficult</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <input type="number" id="num-questions" min="1" max="12" value="6">
+                
+                <div class="setting-2">
+                    <div>
+                        <label for="question-type" class="sr-only">Questions type:</label>
+                    </div>
+                    <div>
+                        <select id="question-type" name="question_type" aria-label="Question type">
+                            <option value="mcq" selected>Multiple Choice</option>
+                            <option value="tf">True / False</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-3">
+                    <div>
+                        <label for="num-questions">Number of Questions:</label>
+                    </div>
+                    <div>
+                        <input type="number" id="num-questions" min="1" max="12" value="6">
+                    </div>
                 </div>
                 <div>
                     <button class="generate-btn" id="generate-btn">Generate studycards</button>

@@ -6,6 +6,11 @@ let currentPage = 1;
 const sessionsPerPage = 5;
 let progressChart = null;
 let currentUser = null;
+// Advanced Analytics Functions
+let trendsChart = null;
+let typePerformanceChart = null;
+let difficultyChart = null;
+let sessionStartTime = null;
 
 // function to limit how often setUniformCardHeights runs during resizing
 function debounce(func, wait) {
@@ -36,6 +41,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const generateBtn = document.getElementById('generate-btn');
     if (generateBtn) {
         generateBtn.addEventListener('click', generateFlashcards);
+    }
+
+    if (window.location.pathname === '/analytics') {
+        setTimeout(initAllCharts, 300);
     }
 
     // Resize event listener for flashcard heights
@@ -127,9 +136,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initialize auth
-    initAuth();
-
     // Add event listener for the modal's close button
     const modalCloseBtn = document.getElementById('modal-close-btn');
     if (modalCloseBtn) {
@@ -203,79 +209,115 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Generate studycards function
+// Generate questions and studycards function
 function generateFlashcards() {
     // Reset save state when generating new studycards
     hasSavedCurrentSet = false;
     
-    const notes = document.getElementById('study-notes').value;
-    const count = parseInt(document.getElementById('num-questions').value);
+    // Set session start time
+    sessionStartTime = new Date();
     
+    // Reset current session ID
+    currentSessionId = null;
+
+    const notes = document.getElementById('study-notes').value.trim();
+    const count = parseInt(document.getElementById('num-questions').value, 10) || 6;
+
+    // Read selectors (fall back safely)
+    const questionTypeEl = document.getElementById('question-type');
+    const difficultyEl = document.getElementById('question-difficulty');
+
+    const questionType = (questionTypeEl && questionTypeEl.value) ? questionTypeEl.value : 'mcq';
+    const difficulty = (difficultyEl && difficultyEl.value) ? difficultyEl.value : 'normal';
+
+    // Store the selected values for later use
+    currentQuestionType = questionType;
+    currentDifficulty = difficulty;
+
     if (!notes) {
         alert('Please enter some study notes first.');
         return;
     }
-    
-    if (count < 1 || count > 13) {
+
+    if (count < 1 || count > 12) {
         alert('Please enter a number between 1 and 12 for the number of questions.');
         return;
     }
-    
+
     // Show loading animation
     const loader = document.getElementById('loader');
     const generateBtn = document.getElementById('generate-btn');
     const saveBtn = document.getElementById('save-btn');
-    
-    loader.style.display = 'block';
-    generateBtn.disabled = true;
-    
-    // Send request to backend
+
+    if (loader) loader.style.display = 'block';
+    if (generateBtn) generateBtn.disabled = true;
+
+    // Build payload with timestamps
+    const payload = {
+        notes: notes,
+        num_questions: count,
+        question_type: questionType,
+        difficulty: difficulty,
+        session_start_time: sessionStartTime.toISOString() // Send start time to backend
+    };
+
     fetch('/generate_questions', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            notes: notes,
-            num_questions: count
-        })
+        body: JSON.stringify(payload)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+    })
     .then(data => {
-        if (data.status === 'success') {
-            flashcardsData = data.questions.map(q => ({
-                ...q,
-                userAnswer: null,
+        if (data.status === 'success' && Array.isArray(data.questions)) {
+            // Normalize incoming question objects
+            flashcardsData = data.questions.map((q, i) => ({
+                id: q.id ?? null,
+                question: q.question ?? q.text ?? '',
+                options: Array.isArray(q.options) ? q.options : (q.opts || []),
+                correctAnswer: (typeof q.correctAnswer !== 'undefined') ? q.correctAnswer : (q.correct_answer ?? 0),
+                userAnswer: (typeof q.userAnswer !== 'undefined') ? q.userAnswer : (q.user_answer ?? null),
+                is_correct: (typeof q.is_correct !== 'undefined') ? q.is_correct : null,
+                questionType: q.questionType ?? q.question_type ?? 'mcq', // Ensure this exists
+                difficulty: q.difficulty ?? 'normal', // Ensure this exists
                 answered: false
             }));
             
+            console.log('First card data:', {
+                questionType: flashcardsData[0].questionType,
+                difficulty: flashcardsData[0].difficulty
+            });
+
             displayFlashcards();
-            
-            // Enable save button for new studycards
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Save study session';
-            hasSavedCurrentSet = false;
-            saveBtn.title = 'Save your current session to your study history';
-            
-            // Show AI status message
+
+            // Enable save button for new studycards (save button logic may check unanswered)
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save study session';
+                saveBtn.title = 'Save your current session to your study history';
+            }
+
+            // Show AI status message if provided
             const statusMessage = document.getElementById('ai-status');
             if (statusMessage) {
-                statusMessage.textContent = data.message || 
-                    (data.source === 'ai' ? 'Questions generated by AI' : 'Using sample questions');
-                statusMessage.className = `ai-status ${data.source}`;
+                statusMessage.textContent = data.message || (data.source === 'ai' ? 'Questions generated by AI' : 'Using sample questions');
+                statusMessage.className = `ai-status ${data.source || ''}`;
             }
-            
         } else {
-            alert('Error generating questions: ' + data.message);
+            alert('Error generating questions: ' + (data.message || 'Unknown error'));
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Error generating questions');
+        console.error('Error generating questions:', error);
+        alert('Error generating questions. See console for details.');
     })
     .finally(() => {
-        loader.style.display = 'none';
-        generateBtn.disabled = false;
+        if (loader) loader.style.display = 'none';
+        if (generateBtn) generateBtn.disabled = false;
     });
 }
 
@@ -368,11 +410,18 @@ function displayFlashcards() {
                 <div class="flashcard-front">
                     <div class="question">${card.question}</div>
                     <div class="options">
-                        ${card.options.map((option, optIndex) => `
-                            <div class="option" data-option="${optIndex}">
-                                ${String.fromCharCode(65 + optIndex)}) ${option}
-                            </div>
-                        `).join('')}
+                        ${card.options.map((option, optIndex) => {
+                            // For True/False questions, use simpler labels
+                            const optionLabel = card.questionType === 'tf' ? 
+                                (optIndex === 0 ? 'True' : 'False') : 
+                                `${String.fromCharCode(65 + optIndex)}) ${option}`;
+                            
+                            return `
+                                <div class="option" data-option="${optIndex}">
+                                    ${optionLabel}
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                     <div class="instructions">Select an answer, then click to flip</div>
                 </div>
@@ -421,7 +470,6 @@ function displayFlashcards() {
     setUniformCardHeights(); // Call directly instead of timeout
     updateSaveButtonState();
 }
-
 
 // Function whenever answers change
 function selectAnswer(cardIndex, optionIndex) {
@@ -517,6 +565,10 @@ function saveFlashcards() {
     saveBtn.textContent = 'Saving...';
     saveBtn.disabled = true;
     
+    // Calculate session duration
+    const sessionEndTime = new Date();
+    const sessionDuration = sessionEndTime - sessionStartTime;
+    
     fetch('/save_flashcards', {
         method: 'POST',
         headers: {
@@ -524,7 +576,10 @@ function saveFlashcards() {
         },
         body: JSON.stringify({
             flashcards: flashcardsData,
-            notes: notes
+            notes: notes,
+            session_start_time: sessionStartTime.toISOString(), // Send start time
+            session_duration: sessionDuration, // Only send total duration
+            session_end_time: sessionEndTime.toISOString()
         })
     })
     .then(response => response.json())
@@ -532,13 +587,12 @@ function saveFlashcards() {
         if (data.status === 'success') {
             // Mark as saved and update UI
             handleSaveSuccess();
-
+            sessionStartTime = null; // Reset session timer
+            currentSessionId = null; // Reset session ID
         } else {
             alert('Error saving session: ' + data.message);
             saveBtn.disabled = false;
         }
-
-    
     })
     .catch(error => {
         console.error('Error:', error);
@@ -619,7 +673,6 @@ function initProgressChart() {
     return progressChart;
 }
 
-
 function updateProgressChart(sessions, limit = 5) {  // Default is 5
     // Ensure chart exists
     if (!progressChart) {
@@ -657,7 +710,6 @@ function updateProgressChart(sessions, limit = 5) {  // Default is 5
     progressChart.update();
 }
 
-
 // Load saved sessions
 function loadSessions(page = 1) {
     console.log('🔍 Loading sessions from /list_sessions...');
@@ -665,8 +717,12 @@ function loadSessions(page = 1) {
     // Check if user is authenticated first
     if (!currentUser) {
         console.log('⚠️  User not authenticated, skipping session load');
-        const container = document.getElementById('sessions-container');
-        container.innerHTML = '<p class="no-sessions">Please sign in to view your study sessions</p>';
+        
+        // Only try to update sessions container if it exists
+        const sessionsContainer = document.getElementById('sessions-container');
+        if (sessionsContainer) {
+            sessionsContainer.innerHTML = '<p class="no-sessions">Please sign in to view your study sessions</p>';
+        }
         
         // Clear the chart and stats for logged out users
         updateProgressChart([], 5);
@@ -695,22 +751,32 @@ function loadSessions(page = 1) {
                 // Always update summary stats, even if empty
                 updateSummaryStats(allSessions);
                 
-                if (allSessions.length === 0) {
-                    const container = document.getElementById('sessions-container');
-                    container.innerHTML = '<p class="no-sessions">No study sessions yet.</p>';
-                    
-                    // Clear the chart for users with no sessions
-                    updateProgressChart([], 5);
-                    return;
+                // Only update sessions container if it exists (for /sessions page)
+                const sessionsContainer = document.getElementById('sessions-container');
+                if (sessionsContainer) {
+                    if (allSessions.length === 0) {
+                        sessionsContainer.innerHTML = '<p class="no-sessions">No study sessions yet.</p>';
+                    } else {
+                        renderPaginatedSessions();
+                    }
                 }
                 
-                renderPaginatedSessions();
+                // Update progress chart (exists on analytics page)
                 updateProgressChart(allSessions, 5);
+                
+                // Update analytics if on analytics page
+                if (window.location.pathname === '/analytics') {
+                    updateAdvancedAnalytics(allSessions);
+                }
                 
             } else {
                 console.error('❌ Error loading sessions:', data.message);
-                const container = document.getElementById('sessions-container');
-                container.innerHTML = '<p class="no-sessions">No study sessions found yet.</p>';
+                
+                // Only update sessions container if it exists
+                const sessionsContainer = document.getElementById('sessions-container');
+                if (sessionsContainer) {
+                    sessionsContainer.innerHTML = '<p class="no-sessions">No study sessions found yet.</p>';
+                }
                 
                 // Clear the chart and stats on error
                 updateProgressChart([], 5);
@@ -719,25 +785,36 @@ function loadSessions(page = 1) {
         })
         .catch(error => {
             console.error('❌ Error fetching sessions:', error);
-            const container = document.getElementById('sessions-container');
-            if (error.message.includes('Authentication')) {
-                container.innerHTML = '<p class="no-sessions">Please sign in to view your study sessions</p>';
-            } else {
-                container.innerHTML = '<p class="no-sessions">Error loading sessions. Please try again.</p>';
+            
+            // Only update sessions container if it exists
+            const sessionsContainer = document.getElementById('sessions-container');
+            if (sessionsContainer) {
+                if (error.message.includes('Authentication')) {
+                    sessionsContainer.innerHTML = '<p class="no-sessions">Please sign in to view your study sessions</p>';
+                } else {
+                    sessionsContainer.innerHTML = '<p class="no-sessions">Error loading sessions. Please try again.</p>';
+                }
             }
             
             // Clear the chart and stats on error
             updateProgressChart([], 5);
             updateSummaryStats([]);
+            
+            // Also update analytics with empty data on error
+            if (window.location.pathname === '/analytics') {
+                updateAdvancedAnalytics([]);
+            }
         });
 }
-
 
 // Render paginated sessions
 function renderPaginatedSessions() {
     const container = document.getElementById("sessions-container");
     const pagination = document.getElementById("pagination-controls");
+    
+    // Check if elements exist
     if (!container || !pagination) {
+        console.log('Sessions container or pagination not found - probably not on sessions page');
         return;
     }
 
@@ -753,7 +830,6 @@ function renderPaginatedSessions() {
     renderSessions(paginatedSessions);
     renderPaginationControls();
 }
-
 
 // Render pagination controls
 function renderPaginationControls() {
@@ -807,9 +883,22 @@ function updateSummaryStats(sessions) {
     }
 
     const totalSessions = sessions.length;
-    const totalQuestions = sessions.reduce((sum, s) => sum + s.total_questions, 0);
-    const avgScore =
-        sessions.reduce((sum, s) => sum + (s.score_percentage || 0), 0) / totalSessions;
+    const totalQuestions = sessions.reduce((sum, s) => {
+        const questions = Number(s.total_questions) || 0;
+        return sum + questions;
+    }, 0);
+    
+    const totalScore = sessions.reduce((sum, s) => {
+        // Properly handle score conversion with NaN protection
+        let score = 0;
+        if (s.score_percentage !== null && s.score_percentage !== undefined) {
+            score = Number(s.score_percentage);
+            if (isNaN(score)) score = 0;
+        }
+        return sum + score;
+    }, 0);
+
+    const avgScore = totalSessions > 0 ? totalScore / totalSessions : 0;
 
     avgScoreEl.textContent = `${avgScore.toFixed(1)}%`;
     totalQuestionsEl.textContent = totalQuestions;
@@ -817,12 +906,10 @@ function updateSummaryStats(sessions) {
 }
 
 
-// Fuction to Render Sessions
+// Function to Render Sessions
 function renderSessions(sessions) {
     const container = document.getElementById('sessions-container');
-    if (!container) {
-        return;
-    }
+    if (!container) return;
 
     container.innerHTML = '';
 
@@ -845,6 +932,28 @@ function renderSessions(sessions) {
     list.className = 'sessions-list';
 
     sessions.forEach(session => {
+        // Duration formatting logic (from before)
+        const minutesRaw = calculateSessionDuration(session) / 60;
+
+        let durationDisplay;
+        if (minutesRaw < 1) {
+            durationDisplay = '<1 minute';
+        } else {
+            const rounded = Math.round(minutesRaw * 2) / 2;
+            const roundedStr = Number.isInteger(rounded)
+                ? `${rounded}`
+                : `${rounded.toFixed(1)}`;
+            const unit = (rounded === 1) ? 'minute' : 'minutes';
+            durationDisplay = `${roundedStr} ${unit}`;
+        }
+
+        // ✅ Score styling logic
+        const score = session.score_percentage || 0;
+        const scoreClass =
+            score >= 80 ? 'session-score high'
+            : score >= 60 ? 'session-score medium'
+            : 'session-score low';
+
         const item = document.createElement('li');
         item.className = 'session-item';
 
@@ -853,13 +962,17 @@ function renderSessions(sessions) {
                 <div class="session-topic">${session.title}</div>
             </div>
             <div class="session-stats">
+                <div class="session-stat session-duration">
+                    <span class="session-stat-label">Duration:</span>
+                    <span class="session-stat-value">⏱️ ${durationDisplay}</span>
+                </div>
                 <div class="session-stat session-questions">
                     <span class="session-stat-label">Questions:</span>
                     <span class="session-stat-value">${session.total_questions}</span>
                 </div>
-                <div class="session-stat session-score">
+                <div class="session-stat ${scoreClass}">
                     <span class="session-stat-label">Score:</span>
-                    <span class="session-stat-value">${session.score_percentage}%</span>
+                    <span class="session-stat-value">${score}%</span>
                 </div>
             </div>
             <div class="session-actions">
@@ -870,6 +983,7 @@ function renderSessions(sessions) {
 
         list.appendChild(item);
     });
+
 
     container.appendChild(list);
 
@@ -1078,6 +1192,15 @@ function handleLogin() {
             localStorage.setItem('userEmail', data.user.email);
             localStorage.setItem('userId', data.user.id);
             // Button will be re-enabled by enableAppInterface()
+
+            // Force reload sessions after successful auth
+            setTimeout(() => {
+                loadSessions(1);
+                if (typeof updateTierInfo === 'function') {
+                    updateTierInfo();
+                }
+            }, 500);
+
         } else {
             alert('Login failed: ' + data.message);
             resetAuthButton(); // Use the reset function
@@ -1302,7 +1425,6 @@ function hideSuccessModal() {
     modal.style.display = 'none';
 }
 
-// Function to clear the chat/study area
 // Function to clear the chat/study area
 function clearChatArea() {
     // Clear flashcards
@@ -1635,7 +1757,6 @@ function navigateToUpgrade() {
     window.location.href = '/upgrade';
 }
 
-// Add this function to your script.js
 function disableAppInterface() {
     // Disable generate button
     const generateBtn = document.getElementById('generate-btn');
@@ -1701,52 +1822,57 @@ function enableAppInterface() {
 
 // Mobile Menu Functions
 function initMobileMenu() {
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    const mobileMenu = document.getElementById('mobile-menu');
-    
-    if (!mobileMenuToggle || !mobileMenu) {
-        console.log('Mobile menu elements not found');
+    try {
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        if (!mobileMenuToggle || !mobileMenu) {
+            console.log('Mobile menu elements not found');
+            return false;
+        }
+        
+        // Toggle mobile menu
+        mobileMenuToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            this.classList.toggle('active');
+            mobileMenu.classList.toggle('active');
+            document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            if (mobileMenu.classList.contains('active') && 
+                !mobileMenu.contains(event.target) && 
+                !mobileMenuToggle.contains(event.target)) {
+                closeMobileMenu();
+            }
+        });
+        
+        // Close menu on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && mobileMenu.classList.contains('active')) {
+                closeMobileMenu();
+            }
+        });
+        
+        function closeMobileMenu() {
+            mobileMenuToggle.classList.remove('active');
+            mobileMenu.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // Close menu when clicking on menu items
+        const menuItems = mobileMenu.querySelectorAll('button, a');
+        menuItems.forEach(item => {
+            item.addEventListener('click', closeMobileMenu);
+        });
+        
+        console.log('Mobile menu initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('Mobile menu initialization error:', error);
         return false;
-    }
-    
-    // Toggle mobile menu
-    mobileMenuToggle.addEventListener('click', function(e) {
-        e.stopPropagation();
-        this.classList.toggle('active');
-        mobileMenu.classList.toggle('active');
-        document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
-    });
-    
-    // Close menu when clicking outside
-    document.addEventListener('click', function(event) {
-        if (mobileMenu.classList.contains('active') && 
-            !mobileMenu.contains(event.target) && 
-            !mobileMenuToggle.contains(event.target)) {
-            closeMobileMenu();
-        }
-    });
-    
-    // Close menu on escape key
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape' && mobileMenu.classList.contains('active')) {
-            closeMobileMenu();
-        }
-    });
-    
-    function closeMobileMenu() {
-        mobileMenuToggle.classList.remove('active');
-        mobileMenu.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-    
-    // Close menu when clicking on menu items
-    const menuItems = mobileMenu.querySelectorAll('button, a');
-    menuItems.forEach(item => {
-        item.addEventListener('click', closeMobileMenu);
-    });
-    
-    console.log('Mobile menu initialized successfully');
-    return true;
+    }    
 }
 
 // Function to sync data between desktop and mobile elements
@@ -1778,5 +1904,421 @@ function syncMobileDesktopData() {
     const mobileEmail = document.getElementById('mobile-topbar-email');
     if (desktopEmail && mobileEmail) {
         mobileEmail.textContent = desktopEmail.textContent;
+    }
+}
+
+// Initialize all charts
+function initAllCharts() {
+    try {
+        if (document.getElementById('progress-chart') && !progressChart) {
+            progressChart = initProgressChart();
+        }
+        if (document.getElementById('trends-chart') && !trendsChart) {
+            trendsChart = initTrendsChart();
+        }
+        if (document.getElementById('type-performance-chart') && !typePerformanceChart) {
+            typePerformanceChart = initTypePerformanceChart();
+        }
+        if (document.getElementById('difficulty-chart') && !difficultyChart) {
+            difficultyChart = initDifficultyChart();
+        }
+        
+        // Load data after charts are initialized
+        if (currentUser) {
+            loadSessions(1);
+        }
+    } catch (error) {
+        console.error('Error initializing charts:', error);
+    }
+}
+
+// Calculate comprehensive analytics
+function calculateAdvancedAnalytics(sessions) {
+    if (!sessions || !Array.isArray(sessions)) {
+        console.warn("⚠️ calculateAdvancedAnalytics called with invalid sessions:", sessions);
+        return {
+            timeMetrics: {
+                totalStudyTime: 0,
+                avgSessionTime: 0,
+                questionsPerHour: 0,
+                avgTimePerQuestion: 0
+            },
+            // Add empty data for charts
+            typeData: { mcq: { total: 0, correct: 0 }, tf: { total: 0, correct: 0 } },
+            difficultyData: { normal: { total: 0, correct: 0 }, difficult: { total: 0, correct: 0 } }
+        };
+    }
+
+    // Time metrics (existing code)
+    const totalStudyTime = sessions.reduce((sum, s) => sum + (Number(s.session_duration) || 0), 0);
+    const totalQuestions = sessions.reduce((sum, s) => sum + (Number(s.total_questions) || 0), 0);
+    const avgSessionTime = sessions.length > 0 ? totalStudyTime / sessions.length : 0;
+    const questionsPerHour = totalStudyTime > 0 ? totalQuestions / (totalStudyTime / 3600) : 0;
+    const avgTimePerQuestion = totalQuestions > 0 ? totalStudyTime / totalQuestions : 0;
+
+    // Initialize type and difficulty counters
+    const typeData = {
+        mcq: { total: 0, correct: 0 },
+        tf: { total: 0, correct: 0 }
+    };
+    
+    const difficultyData = {
+        normal: { total: 0, correct: 0 },
+        difficult: { total: 0, correct: 0 }
+    };
+
+    return {
+        timeMetrics: {
+            totalStudyTime,
+            avgSessionTime,
+            questionsPerHour,
+            avgTimePerQuestion
+        },
+        typeData,
+        difficultyData
+    };
+}
+
+
+// Calculate session duration in seconds
+function calculateSessionDuration(session) {
+    // Prefer DB-provided duration if available
+    if (session.session_duration !== null && session.session_duration !== undefined) {
+        return Number(session.session_duration) || 0;
+    }
+
+    // Otherwise, fallback to updated_at - created_at
+    if (session.created_at && session.updated_at) {
+        const start = new Date(session.created_at);
+        const end = new Date(session.updated_at);
+        const diffSeconds = Math.floor((end - start) / 1000);
+        return diffSeconds;
+    }
+
+    return 0; // fallback if missing
+}
+  
+
+// Update all analytics displays
+function updateAdvancedAnalytics(sessions) {
+    if (!sessions || !Array.isArray(sessions)) {
+        sessions = [];
+    }
+    
+    // Calculate time metrics from sessions
+    const analytics = calculateAdvancedAnalytics(sessions);
+    updateTimeMetrics(analytics.timeMetrics);
+    updateTrendsChart(sessions);
+    
+    // Load type and difficulty data from the new endpoint
+    loadAdvancedAnalytics();
+}
+
+// Update time metrics display
+function updateTimeMetrics(metrics) {
+    const formatDuration = (totalSeconds) => {
+        if (!totalSeconds || totalSeconds === 0) return '0h 0m';
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        return `${hours}h ${minutes}m`;
+    };
+    
+    document.getElementById('avg-time-per-question').textContent = 
+        `${Math.round(metrics.avgTimePerQuestion)}s`;
+    
+    document.getElementById('total-study-time').textContent = 
+        formatDuration(metrics.totalStudyTime);
+    
+    document.getElementById('avg-session-time').textContent = 
+        `${Math.round(metrics.avgSessionTime / 60)}m`;
+    
+    document.getElementById('questions-per-hour').textContent = 
+        Math.round(metrics.questionsPerHour);
+}
+
+
+// Format date for display
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+}
+
+// Chart initialization functions
+function initTrendsChart() {
+    const canvas = document.getElementById('trends-chart');
+    if (!canvas) return null;
+    
+    return new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Score %',
+                    data: [],
+                    borderColor: '#4299e1',
+                    backgroundColor: 'rgba(66, 153, 225, 0.1)',
+                    yAxisID: 'y',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 3
+                },
+                {
+                    label: 'Avg Time/Question (s)',
+                    data: [],
+                    borderColor: '#9f7aea',
+                    backgroundColor: 'rgba(159, 122, 234, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Score (%)', color: '#4299e1' },
+                    min: 0,
+                    max: 100,
+                    grid: { color: 'rgba(66, 153, 225, 0.1)' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'Time (seconds)', color: '#9f7aea' },
+                    grid: { drawOnChartArea: false }
+                }
+            },
+            plugins: {
+                legend: { display: true },
+                tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)' }
+            }
+        }
+    });
+}
+
+function initTypePerformanceChart() {
+    const canvas = document.getElementById('type-performance-chart');
+    if (!canvas) return null;
+    
+    return new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Multiple Choice', 'True/False'],
+            datasets: [{
+                data: [0, 0],
+                backgroundColor: ['#4299e1', '#9f7aea'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)' }
+            }
+        }
+    });
+}
+
+function initDifficultyChart() {
+    const canvas = document.getElementById('difficulty-chart');
+    if (!canvas) return null;
+    
+    return new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Normal', 'Difficult'],
+            datasets: [{
+                label: 'Accuracy %',
+                data: [0, 0],
+                backgroundColor: ['#48bb78', '#f56565'],
+                borderWidth: 0,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: { display: true, text: 'Accuracy (%)' },
+                    grid: { color: 'rgba(0, 0, 0, 0.1)' }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)' }
+            }
+        }
+    });
+}
+
+// Chart update functions
+function updateTrendsChart(sessions) {
+    if (!trendsChart) {
+        console.log('Trends chart not initialized');
+        return;
+    }
+    
+    // Ensure sessions is an array
+    if (!sessions || !Array.isArray(sessions)) {
+        console.error('❌ Invalid data for trends chart:', sessions);
+        return;
+    }
+    
+    console.log('📊 Updating trends chart with:', sessions.length, 'sessions');
+    
+    const sortedSessions = [...sessions].sort((a, b) => 
+        new Date(a.created_at) - new Date(b.created_at)
+    );
+    
+    trendsChart.data.labels = sortedSessions.map(session => 
+        new Date(session.created_at).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+        })
+    );
+    
+    trendsChart.data.datasets[0].data = sortedSessions.map(session => 
+        session.score_percentage || 0
+    );
+    
+    trendsChart.data.datasets[1].data = sortedSessions.map(session => {
+        const avgTime = session.session_duration / (session.total_questions || 1);
+        return Math.round(avgTime) || 0;
+    });
+    
+    trendsChart.update();
+    console.log('✅ Trends chart updated successfully');
+}
+
+function updateTypePerformanceChart(typeData) {
+    if (!typePerformanceChart) {
+        console.log('Type performance chart not initialized');
+        return;
+    }
+    
+    // Hide the placeholder message and show the chart
+    const canvas = document.getElementById('type-performance-chart');
+    const messageEl = canvas.nextElementSibling;
+    if (canvas && messageEl && messageEl.classList.contains('chart-message')) {
+        canvas.style.display = 'block';
+        messageEl.style.display = 'none';
+    }
+    
+    typePerformanceChart.data.datasets[0].data = [
+        typeData.mcq.total > 0 ? (typeData.mcq.correct / typeData.mcq.total) * 100 : 0,
+        typeData.tf.total > 0 ? (typeData.tf.correct / typeData.tf.total) * 100 : 0
+    ];
+    
+    typePerformanceChart.update();
+    console.log('Type performance chart updated with data');
+}
+
+function updateDifficultyChart(difficultyData) {
+    if (!difficultyChart) {
+        console.log('Difficulty chart not initialized');
+        return;
+    }
+    
+    // Hide the placeholder message and show the chart
+    const canvas = document.getElementById('difficulty-chart');
+    const messageEl = canvas.nextElementSibling;
+    if (canvas && messageEl && messageEl.classList.contains('chart-message')) {
+        canvas.style.display = 'block';
+        messageEl.style.display = 'none';
+    }
+    
+    difficultyChart.data.datasets[0].data = [
+        difficultyData.normal.total > 0 ? (difficultyData.normal.correct / difficultyData.normal.total) * 100 : 0,
+        difficultyData.difficult.total > 0 ? (difficultyData.difficult.correct / difficultyData.difficult.total) * 100 : 0
+    ];
+    
+    difficultyChart.update();
+    console.log('Difficulty chart updated with data');
+}
+
+function updateDifficultyChart(difficultyData) {
+    if (!difficultyChart) return;
+    
+    difficultyChart.data.datasets[0].data = [
+        difficultyData.normal.total > 0 ? (difficultyData.normal.correct / difficultyData.normal.total) * 100 : 0,
+        difficultyData.difficult.total > 0 ? (difficultyData.difficult.correct / difficultyData.difficult.total) * 100 : 0
+    ];
+    
+    difficultyChart.update();
+}
+
+async function loadAdvancedAnalytics() {
+    try {
+        const response = await fetch('/analytics/type-difficulty');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            // Convert array format to object format for the charts
+            const typeData = {
+                mcq: { total: 0, correct: 0 },
+                tf: { total: 0, correct: 0 }
+            };
+            
+            const difficultyData = {
+                normal: { total: 0, correct: 0 },
+                difficult: { total: 0, correct: 0 }
+            };
+            
+            // Process question types from array to object
+            if (data.data.question_types && Array.isArray(data.data.question_types)) {
+                data.data.question_types.forEach(item => {
+                    const type = item.question_type;
+                    if (type in typeData) {
+                        typeData[type] = {
+                            total: item.total_questions || 0,
+                            correct: item.correct_answers || 0
+                        };
+                    }
+                });
+            }
+            
+            // Process difficulties from array to object
+            if (data.data.difficulties && Array.isArray(data.data.difficulties)) {
+                data.data.difficulties.forEach(item => {
+                    const difficulty = item.difficulty;
+                    if (difficulty in difficultyData) {
+                        difficultyData[difficulty] = {
+                            total: item.total_questions || 0,
+                            correct: item.correct_answers || 0
+                        };
+                    }
+                });
+            }
+            
+            // Update the charts
+            updateTypePerformanceChart(typeData);
+            updateDifficultyChart(difficultyData);
+        }
+        
+    } catch (error) {
+        console.error('Error loading advanced analytics:', error);
     }
 }
