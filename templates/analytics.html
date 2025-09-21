@@ -8,44 +8,53 @@
     </header>
 
     <section class="analytics-section">
-        <h2 class="section-title">
-            <span class="icon">📈</span>
-            Progress Analytics
-        </h2>
-        
-        <div class="stats-summary">
-            <div class="stat-card">
-                <span class="stat-value" id="total-questions">0</span>
-                <span class="stat-label">Total Questions</span>
-            </div>
-
-            <div class="stat-card">
-                <span class="stat-value" id="sessions-count">0</span>
-                <span class="stat-label">Study Sessions</span>
-            </div>
-        </div>
-
         <div class="analytics-controls">
-            <label for="sessions-range">Show last:</label>
-            <select id="sessions-range">
-                <option value="5" selected>5 sessions</option>
-                <option value="10">10 sessions</option>
-                <option value="20">20 sessions</option>
-                <option value="all">All sessions</option>
-            </select>
+            <h2 class="section-title">
+                <span class="icon">🎛</span>
+                Range Control
+            </h2>
+            <div class="control-group">
+                <label for="sessions-range">Show last:</label>
+                <select id="sessions-range">
+                    <option value="5" selected>5 sessions</option>
+                    <option value="10">10 sessions</option>
+                    <option value="20">20 sessions</option>
+                    <option value="all">All sessions</option>
+                </select>
+            </div>
             
-            <label for="time-period">Time period:</label>
-            <select id="time-period">
-                <option value="7">Last 7 days</option>
-                <option value="30" selected>Last 30 days</option>
-                <option value="90">Last 90 days</option>
-                <option value="365">Last year</option>
-                <option value="all">All time</option>
-            </select>
+            <div class="control-group">
+                <label for="time-period">Time period:</label>
+                <select id="time-period">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="365">Last year</option>
+                    <option value="all">All time</option>
+                </select>
+                <button id="apply-analytics-filters" class="apply-btn" hidden>Apply Filters</button>
+            </div>
         </div>
-        
-        <div class="chart-container">
-            <canvas id="progress-chart"></canvas>
+        <div class="analytics-card">
+            <h2 class="section-title">
+                <span class="icon">📈</span>
+                Performance & Efficiency Over Time
+            </h2>
+            
+            <div class="stats-summary">
+                <div class="stat-card">
+                    <span class="stat-value" id="total-questions">0</span>
+                    <span class="stat-label">Total Questions</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="average-score">0%</span>
+                    <span class="stat-label">Average Score</span>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="progress-chart"></canvas>
+            </div>
         </div>
 
         <!-- NEW: Advanced Analytics Section -->
@@ -63,8 +72,8 @@
                 <h3>⏱️ Time Efficiency</h3>
                 <div class="time-metrics">
                     <div class="metric">
-                        <span class="metric-value" id="total-study-time">0h 0m</span>
-                        <span class="metric-label">Total Study Time</span>
+                        <span class="metric-value" id="avg-time-per-question">0s</span>
+                        <span class="metric-label">Avg Time/Question</span>
                     </div>
                     <div class="metric">
                         <span class="metric-value" id="avg-session-time">0m</span>
@@ -73,6 +82,10 @@
                     <div class="metric">
                         <span class="metric-value" id="questions-per-hour">0</span>
                         <span class="metric-label">Questions/Hour</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value" id="success-rate">0%</span>
+                        <span class="metric-label">Success Rate (80%+)</span>
                     </div>
                 </div>
             </div>
@@ -87,15 +100,15 @@
 
             <!-- Progress Trends -->
             <div class="analytics-card full-width">
-                <h3>📈 Progress Trends Over Time</h3>
+                <h3>📈 Study Volume & Session Length</h3>
                 <div class="stats-summary">
                     <div class="stat-card">
-                        <span class="stat-value" id="average-score">0%</span>
-                        <span class="stat-label">Average Score</span>
+                        <span class="stat-value" id="sessions-count">0</span>
+                        <span class="stat-label">Study Sessions</span>
                     </div>
                     <div class="stat-card">
-                        <span class="stat-value" id="avg-time-per-question">0s</span>
-                        <span class="stat-label">Avg Time/Question</span>
+                        <span class="stat-value" id="total-study-time">0h 0m</span>
+                        <span class="stat-label">Total Study Time</span>
                     </div>
                 </div>
                 <div class="chart-container">

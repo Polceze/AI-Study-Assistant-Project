@@ -11,6 +11,8 @@ let trendsChart = null;
 let typePerformanceChart = null;
 let difficultyChart = null;
 let sessionStartTime = null;
+let currentRangeFilter = '5';
+let currentTimeFilter = '30';
 
 // function to limit how often setUniformCardHeights runs during resizing
 function debounce(func, wait) {
@@ -76,14 +78,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Chart range selector event listener
     const rangeSelector = document.getElementById('sessions-range');
-    if (rangeSelector) {
-        // Set default value to 5
-        rangeSelector.value = '5';
-        
-        rangeSelector.addEventListener('change', function() {
-            const limit = this.value === 'all' ? allSessions.length : parseInt(this.value);
-            updateProgressChart(allSessions, limit);
-        });
+    const timePeriodSelector = document.getElementById('time-period');
+    
+    if (rangeSelector && timePeriodSelector) {
+        rangeSelector.value = '5'; // Ensure default value
+        timePeriodSelector.value = '30'; // Ensure default value
+        currentRangeFilter = '5';
+        currentTimeFilter = '30';
+
+        rangeSelector.addEventListener('change', applyAnalyticsFilters);
+        timePeriodSelector.addEventListener('change', applyAnalyticsFilters);
     }
 
     const sameNotesBtn = document.getElementById('new-session-same-notes');
@@ -197,6 +201,48 @@ document.addEventListener('DOMContentLoaded', function() {
             handleLogout();
         });
     }
+
+    const form = document.getElementById('contact-form');
+    const submitBtn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        document.getElementById('contact-success').style.display = 'none';
+        document.getElementById('contact-error').style.display = 'none';
+
+        if (!validateForm(form)) return;
+
+        setButtonLoading(submitBtn, true);
+
+        const payload = {
+            name: form.name.value.trim(),
+            email: form.email.value.trim(),
+            message: form.message.value.trim()
+        };
+
+        try {
+            const res = await fetch('/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (res.ok && data && data.status === 'success') {
+                showSuccess(data.message || 'Message sent successfully');
+                form.reset();
+            } else {
+                const m = (data && data.message) ? data.message : 'Failed to send message';
+                showError('❌ ' + m);
+            }
+        } catch (err) {
+            console.error('Contact send error', err);
+            showError('❌ Could not send message. Try again later.');
+        } finally {
+            setButtonLoading(submitBtn, false);
+        }
+    });
 
 });
 
@@ -629,7 +675,7 @@ function initProgressChart() {
                     fill: true
                 },
                 {
-                    label: 'Number of Questions',
+                    label: 'Avg Time/Question (s)',
                     data: [],
                     borderColor: '#a777e3',
                     backgroundColor: 'rgba(167, 119, 227, 0.1)',
@@ -660,7 +706,7 @@ function initProgressChart() {
                     position: 'right',
                     title: {
                         display: true,
-                        text: 'Questions'
+                        text: 'Time (seconds)'
                     },
                     grid: {
                         drawOnChartArea: false
@@ -673,7 +719,7 @@ function initProgressChart() {
     return progressChart;
 }
 
-function updateProgressChart(sessions, limit = 5) {  // Default is 5
+function updateProgressChart(sessions, limit = 5) {
     // Ensure chart exists
     if (!progressChart) {
         progressChart = initProgressChart();
@@ -702,15 +748,20 @@ function updateProgressChart(sessions, limit = 5) {  // Default is 5
     );
 
     const scores = chartSessions.map(session => session.score_percentage);
-    const questionCounts = chartSessions.map(session => session.total_questions);
+    
+    // CHANGED: Use average time per question instead of question count
+    const avgTimes = chartSessions.map(session => {
+        const avgTime = session.session_duration / (session.total_questions || 1);
+        return Math.round(avgTime);
+    });
 
     progressChart.data.labels = labels;
     progressChart.data.datasets[0].data = scores;
-    progressChart.data.datasets[1].data = questionCounts;
+    progressChart.data.datasets[1].data = avgTimes;
     progressChart.update();
 }
 
-// Load saved sessions
+// Load sessions
 function loadSessions(page = 1) {
     console.log('🔍 Loading sessions from /list_sessions...');
 
@@ -730,8 +781,9 @@ function loadSessions(page = 1) {
         return;
     }
     
-    fetch('/list_sessions')
+    fetch('/get_sessions')
         .then(response => {
+            console.log('📋 Response status:', response.status, response.statusText);
             if (response.status === 401) {
                 showAuthModal();
                 throw new Error('Authentication required');
@@ -747,26 +799,20 @@ function loadSessions(page = 1) {
             if (data.status === 'success') {
                 allSessions = data.sessions;
                 console.log(`✅ Found ${allSessions.length} total sessions for user`);
-                
-                // Always update summary stats, even if empty
-                updateSummaryStats(allSessions);
-                
-                // Only update sessions container if it exists (for /sessions page)
+
+                // RENDER SESSIONS FOR SESSIONS PAGE
                 const sessionsContainer = document.getElementById('sessions-container');
                 if (sessionsContainer) {
                     if (allSessions.length === 0) {
                         sessionsContainer.innerHTML = '<p class="no-sessions">No study sessions yet.</p>';
                     } else {
-                        renderPaginatedSessions();
+                        renderPaginatedSessions();  // ← RENDER SESSIONS HERE
                     }
                 }
                 
-                // Update progress chart (exists on analytics page)
-                updateProgressChart(allSessions, 5);
-                
-                // Update analytics if on analytics page
+                // APPLY FILTERS FOR ANALYTICS PAGE ONLY
                 if (window.location.pathname === '/analytics') {
-                    updateAdvancedAnalytics(allSessions);
+                    applyAnalyticsFilters();
                 }
                 
             } else {
@@ -809,7 +855,14 @@ function loadSessions(page = 1) {
 
 // Render paginated sessions
 function renderPaginatedSessions() {
+    console.log('🔄 Rendering paginated sessions');
     const container = document.getElementById("sessions-container");
+    console.log('Container found:', !!container);
+    
+    if (!container) {
+        console.log('❌ No sessions container found');
+        return;
+    }
     const pagination = document.getElementById("pagination-controls");
     
     // Check if elements exist
@@ -870,8 +923,9 @@ function updateSummaryStats(sessions) {
     const avgScoreEl = document.getElementById("average-score");
     const totalQuestionsEl = document.getElementById("total-questions");
     const sessionsCountEl = document.getElementById("sessions-count");
+    const successRateEl = document.getElementById("success-rate");
 
-    if (!avgScoreEl || !totalQuestionsEl || !sessionsCountEl) {
+    if (!avgScoreEl || !totalQuestionsEl || !sessionsCountEl || !successRateEl) {
         return;
     }
 
@@ -879,6 +933,7 @@ function updateSummaryStats(sessions) {
         avgScoreEl.textContent = "0%";
         totalQuestionsEl.textContent = "0";
         sessionsCountEl.textContent = "0";
+        successRateEl.textContent = "0%";
         return;
     }
 
@@ -889,7 +944,6 @@ function updateSummaryStats(sessions) {
     }, 0);
     
     const totalScore = sessions.reduce((sum, s) => {
-        // Properly handle score conversion with NaN protection
         let score = 0;
         if (s.score_percentage !== null && s.score_percentage !== undefined) {
             score = Number(s.score_percentage);
@@ -898,13 +952,20 @@ function updateSummaryStats(sessions) {
         return sum + score;
     }, 0);
 
+    // Calculate success rate (sessions with score >= 80%)
+    const successfulSessions = sessions.filter(s => {
+        const score = Number(s.score_percentage) || 0;
+        return score >= 80;
+    }).length;
+    
     const avgScore = totalSessions > 0 ? totalScore / totalSessions : 0;
+    const successRate = totalSessions > 0 ? ((successfulSessions / totalSessions) * 100) : 0;
 
     avgScoreEl.textContent = `${avgScore.toFixed(1)}%`;
     totalQuestionsEl.textContent = totalQuestions;
     sessionsCountEl.textContent = totalSessions;
+    successRateEl.textContent = `${successRate.toFixed(1)}%`;
 }
-
 
 // Function to Render Sessions
 function renderSessions(sessions) {
@@ -2057,20 +2118,20 @@ function initTrendsChart() {
             labels: [],
             datasets: [
                 {
-                    label: 'Score %',
+                    label: 'Number of Questions',
                     data: [],
-                    borderColor: '#4299e1',
-                    backgroundColor: 'rgba(66, 153, 225, 0.1)',
+                    borderColor: '#48bb78', // Green for volume
+                    backgroundColor: 'rgba(72, 187, 120, 0.1)',
                     yAxisID: 'y',
                     tension: 0.4,
                     fill: true,
                     borderWidth: 3
                 },
                 {
-                    label: 'Avg Time/Question (s)',
+                    label: 'Session Duration (min)',
                     data: [],
-                    borderColor: '#9f7aea',
-                    backgroundColor: 'rgba(159, 122, 234, 0.1)',
+                    borderColor: '#f59e0b', // Amber for time
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
                     yAxisID: 'y1',
                     tension: 0.4,
                     fill: true,
@@ -2087,22 +2148,45 @@ function initTrendsChart() {
                     type: 'linear',
                     display: true,
                     position: 'left',
-                    title: { display: true, text: 'Score (%)', color: '#4299e1' },
+                    title: { 
+                        display: true, 
+                        text: 'Questions', 
+                        color: '#48bb78'
+                    },
                     min: 0,
-                    max: 100,
-                    grid: { color: 'rgba(66, 153, 225, 0.1)' }
+                    grid: { color: 'rgba(72, 187, 120, 0.1)' }
                 },
                 y1: {
                     type: 'linear',
                     display: true,
                     position: 'right',
-                    title: { display: true, text: 'Time (seconds)', color: '#9f7aea' },
+                    title: { 
+                        display: true, 
+                        text: 'Duration (min)', 
+                        color: '#f59e0b'
+                    },
                     grid: { drawOnChartArea: false }
                 }
             },
             plugins: {
                 legend: { display: true },
-                tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)' }
+                tooltip: { 
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.dataset.yAxisID === 'y') {
+                                label += context.parsed.y + ' questions';
+                            } else {
+                                label += Math.round(context.parsed.y) + ' minutes';
+                            }
+                            return label;
+                        }
+                    }
+                }
             }
         }
     });
@@ -2176,13 +2260,10 @@ function updateTrendsChart(sessions) {
         return;
     }
     
-    // Ensure sessions is an array
     if (!sessions || !Array.isArray(sessions)) {
         console.error('❌ Invalid data for trends chart:', sessions);
         return;
     }
-    
-    console.log('📊 Updating trends chart with:', sessions.length, 'sessions');
     
     const sortedSessions = [...sessions].sort((a, b) => 
         new Date(a.created_at) - new Date(b.created_at)
@@ -2195,17 +2276,18 @@ function updateTrendsChart(sessions) {
         })
     );
     
+    // Number of questions
     trendsChart.data.datasets[0].data = sortedSessions.map(session => 
-        session.score_percentage || 0
+        session.total_questions || 0
     );
     
+    // Session duration in minutes (instead of avg time per question)
     trendsChart.data.datasets[1].data = sortedSessions.map(session => {
-        const avgTime = session.session_duration / (session.total_questions || 1);
-        return Math.round(avgTime) || 0;
+        const durationMinutes = (session.session_duration || 0) / 60;
+        return Math.round(durationMinutes * 10) / 10; // Round to 1 decimal
     });
     
     trendsChart.update();
-    console.log('✅ Trends chart updated successfully');
 }
 
 function updateTypePerformanceChart(typeData) {
@@ -2320,5 +2402,198 @@ async function loadAdvancedAnalytics() {
         
     } catch (error) {
         console.error('Error loading advanced analytics:', error);
+    }
+}
+
+function applyAnalyticsFilters() {
+    const sessionsRange = document.getElementById('sessions-range');
+    const timePeriod = document.getElementById('time-period');
+    
+    if (!sessionsRange || !timePeriod) return;
+    
+    // Update global filter states
+    currentRangeFilter = sessionsRange.value;
+    currentTimeFilter = timePeriod.value;
+    
+    const rangeLimit = currentRangeFilter === 'all' ? allSessions.length : parseInt(currentRangeFilter);
+    const daysLimit = currentTimeFilter === 'all' ? null : parseInt(currentTimeFilter);
+    
+    console.log(`Applying filters: ${rangeLimit} sessions, ${daysLimit} days`);
+    
+    // Filter sessions based on both criteria
+    let filteredSessions = [...allSessions];
+    
+    // Apply time period filter first
+    if (daysLimit) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysLimit);
+        
+        filteredSessions = filteredSessions.filter(session => {
+            const sessionDate = new Date(session.created_at);
+            return sessionDate >= cutoffDate;
+        });
+    }
+    
+    // Apply session count limit (most recent first)
+    filteredSessions = filteredSessions
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, rangeLimit);
+    
+    console.log(`Filtered to ${filteredSessions.length} sessions`);
+    
+    // Update ALL analytics with filtered data
+    updateAllAnalytics(filteredSessions);
+}
+
+function updateAllAnalytics(filteredSessions) {
+    if (!filteredSessions || !Array.isArray(filteredSessions)) {
+        console.error('Invalid filtered sessions data');
+        return;
+    }
+    
+    // Update summary stats
+    updateSummaryStats(filteredSessions);
+    
+    // Update progress chart with filtered data AND apply the range limit
+    const rangeLimit = currentRangeFilter === 'all' ? filteredSessions.length : parseInt(currentRangeFilter);
+    updateProgressChart(filteredSessions, rangeLimit);
+    
+    // Update time metrics
+    const analytics = calculateAdvancedAnalytics(filteredSessions);
+    updateTimeMetrics(analytics.timeMetrics);
+    
+    // Update trends chart
+    updateTrendsChart(filteredSessions);
+    
+    // Load type and difficulty data for filtered sessions
+    loadAdvancedAnalyticsForSessions(filteredSessions);
+}
+
+async function loadAdvancedAnalyticsForSessions(sessions) {
+    try {
+        // Get session IDs from filtered sessions
+        const sessionIds = sessions.map(s => s.id);
+        
+        if (sessionIds.length === 0) {
+            // No sessions, show empty charts
+            updateTypePerformanceChart({ mcq: { total: 0, correct: 0 }, tf: { total: 0, correct: 0 } });
+            updateDifficultyChart({ normal: { total: 0, correct: 0 }, difficult: { total: 0, correct: 0 } });
+            return;
+        }
+        
+        // Call backend with filtered session IDs
+        const response = await fetch('/analytics/type-difficulty-filtered', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ session_ids: sessionIds })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            // Process and update charts as before
+            const typeData = {
+                mcq: { total: 0, correct: 0 },
+                tf: { total: 0, correct: 0 }
+            };
+            
+            const difficultyData = {
+                normal: { total: 0, correct: 0 },
+                difficult: { total: 0, correct: 0 }
+            };
+            
+            if (data.data.question_types && Array.isArray(data.data.question_types)) {
+                data.data.question_types.forEach(item => {
+                    const type = item.question_type;
+                    if (type in typeData) {
+                        typeData[type] = {
+                            total: item.total_questions || 0,
+                            correct: item.correct_answers || 0
+                        };
+                    }
+                });
+            }
+            
+            if (data.data.difficulties && Array.isArray(data.data.difficulties)) {
+                data.data.difficulties.forEach(item => {
+                    const difficulty = item.difficulty;
+                    if (difficulty in difficultyData) {
+                        difficultyData[difficulty] = {
+                            total: item.total_questions || 0,
+                            correct: item.correct_answers || 0
+                        };
+                    }
+                });
+            }
+            
+            updateTypePerformanceChart(typeData);
+            updateDifficultyChart(difficultyData);
+        }
+        
+    } catch (error) {
+        console.error('Error loading filtered analytics:', error);
+    }
+}
+
+function clearErrors() {
+    document.getElementById('error-name').textContent = '';
+    document.getElementById('error-email').textContent = '';
+    document.getElementById('error-message').textContent = '';
+}
+
+function validateForm(form) {
+    clearErrors();
+    let valid = true;
+
+    const name = form.name.value.trim();
+    const email = form.email.value.trim();
+    const message = form.message.value.trim();
+
+    if (!name) {
+        document.getElementById('error-name').textContent = 'Name is required';
+        valid = false;
+    }
+    if (!email) {
+        document.getElementById('error-email').textContent = 'Email is required';
+        valid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+        document.getElementById('error-email').textContent = 'Enter a valid email';
+        valid = false;
+    }
+    if (!message) {
+        document.getElementById('error-message').textContent = 'Message cannot be empty';
+        valid = false;
+    }
+
+    return valid;
+}
+
+function showSuccess(msg) {
+    const successBox = document.getElementById('contact-success');
+    successBox.textContent = msg || '✅ Thank you! Your message was sent.';
+    successBox.style.display = 'block';
+    setTimeout(() => { successBox.style.display = 'none'; }, 5000);
+}
+
+function showError(msg) {
+    const errorBox = document.getElementById('contact-error');
+    errorBox.textContent = msg || '❌ Something went wrong.';
+    errorBox.style.display = 'block';
+    setTimeout(() => { errorBox.style.display = 'none'; }, 5000);
+}
+
+function setButtonLoading(button, isLoading) {
+    if (isLoading) {
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner" aria-hidden="true"></span> Sending...';
+    } else {
+        button.disabled = false;
+        button.textContent = 'Send Message';
     }
 }

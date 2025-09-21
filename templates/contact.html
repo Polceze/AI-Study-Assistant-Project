@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="main-body contact-section">
+  <header>
+    <h1>📩 Contact</h1>
+    <p class="tagline">Love the app or spotted an issue? Share your thoughts — we’ll respond to your email.</p>
+  </header>
+
+  <form id="contact-form" class="contact-form" novalidate>
+    <div class="form-row">
+      <label for="name">Name</label>
+      <input id="name" name="name" type="text" placeholder="Your name" required>
+      <small class="error-msg" id="error-name" aria-live="polite"></small>
+    </div>
+
+    <div class="form-row">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" placeholder="you@example.com" required>
+      <small class="error-msg" id="error-email" aria-live="polite"></small>
+    </div>
+
+    <div class="form-row">
+      <label for="message">Message</label>
+      <textarea id="message" name="message" rows="6" placeholder="Write your message..." required></textarea>
+      <small class="error-msg" id="error-message" aria-live="polite"></small>
+    </div>
+
+    <div class="form-actions">
+      <button id="submit-btn" class="submit-btn" type="submit" aria-live="polite">
+        Send Message
+      </button>
+    </div>
+
+    <div id="contact-success" class="contact-feedback success" role="status" aria-live="polite" style="display:none;">
+      ✅ Thank you! Your message was sent.
+    </div>
+
+    <div id="contact-error" class="contact-feedback error" role="alert" aria-live="polite" style="display:none;">
+      ❌ Oops — something went wrong. Please try again.
+    </div>
+  </form>
+</section>
+{% endblock %}
+

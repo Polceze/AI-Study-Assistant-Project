@@ -18,7 +18,7 @@
                 <li><a href="/upgrade">Upgrade</a></li>
             </ul>
             <ul>
-                <li style="white-space: pre"><a href="/" class="{% if request.path == '/' %}active{% endif %}">🏠      Home</a></li>
+                <li style="white-space: pre"><a href="/" class="{% if request.path == '/' %}active{% endif %}">🏠       Home</a></li>
                 <li style="white-space: pre"><a href="/analytics" class="{% if request.path == '/analytics' %}active{% endif %}">📊      Analytics</a></li>
                 <li style="white-space: pre"><a href="/sessions" class="{% if request.path == '/sessions' %}active{% endif %}">📚      My Sessions</a></li>
                 <li style="white-space: pre"><a href="/contact" class="{% if request.path == '/contact' %}active{% endif %}">📩      Contact</a></li>
@@ -73,7 +73,6 @@
             <div class="auth-modal-content">
                 <div class="auth-modal-header">
                     <img src="{{ url_for('static', filename='images/Logo.png') }}" alt="ReviseAI Logo" class="auth-logo">
-                    <h2>Welcome to ReviseAI</h2>
                     <p>Enter your email to start studying</p>
                 </div>
                 <div class="auth-modal-body">

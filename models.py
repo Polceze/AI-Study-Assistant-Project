@@ -16,7 +16,7 @@ class Database:
         # Initialize connection pool
         self.pool = MySQLConnectionPool(
             pool_name="reviseAI_pool",
-            pool_size=10,
+            pool_size=5,
             pool_reset_session=True,
             **self.config
         )
@@ -44,36 +44,31 @@ class Database:
     def fetch_all(self, query, params=None):
         """Run SELECT queries that return multiple rows"""
         conn = self.get_connection()
-        cursor = conn.cursor(dictionary=True)  # rows as dicts
+        if not conn:
+            return []
+        
+        cursor = None
         try:
+            cursor = conn.cursor(dictionary=True)
             cursor.execute(query, params or ())
-            return cursor.fetchall()
+            result = cursor.fetchall()
+            return result
+        
         except Error as e:
-            print(f"Database error: {e}")
             return []
         finally:
-            cursor.close()
-            conn.close()
-    
-    def connect(self):
-        """Get a connection from the pool"""
-        try:
-            self.connection = self.pool.get_connection()
-            return self.connection
-        except Error as e:
-            print(f"Error retrieving connection from pool: {e}")
-            return None
-    
-    def disconnect(self):
-        """Return connection to pool"""
-        if self.connection and self.connection.is_connected():
-            self.connection.close()
+            if cursor:
+                cursor.close()
+            if conn and conn.is_connected():
+                conn.close()
 
     def initialize_database(self):
         """Create necessary tables if they don't exist"""
-        connection = self.connect()
+        connection = self.get_connection()
         if connection is None:
             return False
+        
+        cursor = None
         
         try:
             cursor = connection.cursor()
@@ -178,9 +173,10 @@ class Database:
             print(f"Error initializing database: {e}")
             return False
         finally:
-            if connection and connection.is_connected():
+            if cursor:
                 cursor.close()
-                self.disconnect()
+            if connection:
+                connection.close()
 
     def create_study_session(self, title, notes, user_id):
         """Create a study session and return session ID"""
@@ -236,81 +232,62 @@ class Database:
             return False
 
     def get_sessions(self, user_id=None):
-        """Get study sessions for a user, including score and question type summary"""
-        connection = self.connect()
-        if connection is None:
-            return {"status": "error", "message": "Database connection failed"}
+        """Get study sessions for a user"""
+        query = """
+            SELECT 
+                s.id, s.title, s.created_at, s.updated_at, s.session_duration,
+                DATE_FORMAT(s.created_at, '%%Y-%%m-%%dT%%H:%%i:%%s') AS created_at_formatted,
+                COUNT(c.id) AS total_questions,
+                SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers,
+                CASE 
+                    WHEN COUNT(c.id) > 0 
+                    THEN ROUND(SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(c.id), 2) 
+                    ELSE 0 
+                END AS score_percentage,
+                GROUP_CONCAT(DISTINCT c.question_type) AS question_types
+            FROM study_sessions s
+            LEFT JOIN studycards c ON s.id = c.session_id
+        """
         
-        cursor = None
-        try:
-            cursor = connection.cursor(dictionary=True)
+        params = {}
+        if user_id is not None:
+            query += " WHERE s.user_id = %(user_id)s"
+            params['user_id'] = user_id
+        
+        query += " GROUP BY s.id, s.title, s.created_at ORDER BY s.created_at DESC"
+        
+        # ✅ USE THE SAFE METHOD INSTEAD!
+        sessions = self.fetch_all(query, params)
+        
+        # Process the results (keep this part)
+        formatted_sessions = []
+        for s in sessions:
+            types = []
+            if s.get("question_types"):
+                types = list(set(s["question_types"].split(",")))
             
-            query = """
-                SELECT 
-                    s.id,
-                    s.title,
-                    s.created_at,
-                    s.updated_at,
-                    s.session_duration,
-                    DATE_FORMAT(s.created_at, '%%Y-%%m-%%dT%%H:%%i:%%s') AS created_at_formatted,
-                    COUNT(c.id) AS total_questions,
-                    SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers,
-                    CASE 
-                        WHEN COUNT(c.id) > 0 
-                        THEN ROUND(SUM(CASE WHEN c.is_correct = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(c.id), 2) 
-                        ELSE 0 
-                    END AS score_percentage,
-                    GROUP_CONCAT(DISTINCT c.question_type) AS question_types
-                FROM study_sessions s
-                LEFT JOIN studycards c ON s.id = c.session_id
-            """
-            
-            params = {}
-            if user_id is not None:
-                query += " WHERE s.user_id = %(user_id)s"
-                params['user_id'] = user_id
-            
-            query += " GROUP BY s.id, s.title, s.created_at ORDER BY s.created_at DESC"
-            
-            cursor.execute(query, params)
-            sessions = cursor.fetchall()
+            formatted_sessions.append({
+                "id": s["id"],
+                "title": s["title"],
+                "created_at": s["created_at"],
+                "created_at_formatted": s["created_at_formatted"],
+                "total_questions": int(s["total_questions"]) if s.get("total_questions") is not None else 0,
+                "correct_answers": int(s["correct_answers"]) if s.get("correct_answers") is not None else 0,
+                "score_percentage": float(s["score_percentage"]) if s.get("score_percentage") is not None else 0.0,
+                "question_types": types,
+                "session_duration": float(s["session_duration"]) if s.get("session_duration") is not None else None,
+                "updated_at": s["updated_at"]
+            })
 
-            formatted_sessions = []
-            for s in sessions:
-                types = []
-                if s.get("question_types"):
-                    types = list(set(s["question_types"].split(",")))  # deduplicate
-                
-                formatted_sessions.append({
-                    "id": s["id"],
-                    "title": s["title"],
-                    "created_at": s["created_at"],
-                    "created_at_formatted": s["created_at_formatted"],
-                    "total_questions": int(s["total_questions"]) if s.get("total_questions") is not None else 0,
-                    "correct_answers": int(s["correct_answers"]) if s.get("correct_answers") is not None else 0,
-                    "score_percentage": float(s["score_percentage"]) if s.get("score_percentage") is not None else 0.0,
-                    "question_types": types,
-                    "session_duration": float(s["session_duration"]) if s.get("session_duration") is not None else None,
-                    "updated_at": s["updated_at"]
-                })
-
-            return {"status": "success", "sessions": formatted_sessions}
-                
-        except Error as e:
-            print(f"Error retrieving sessions: {e}")
-            return {"status": "error", "message": str(e)}
-        finally:
-            if cursor:
-                cursor.close()
-            if connection and connection.is_connected():
-                connection.close()
+        return {"status": "success", "sessions": formatted_sessions}
     
     def get_or_create_user(self, email):
         """Get user by email, create if not exists"""
-        connection = self.connect()
+        connection = self.get_connection()  
         if connection is None:
             return None
         
+        cursor = None
         try:
             cursor = connection.cursor(dictionary=True)
             
@@ -331,13 +308,14 @@ class Database:
             print(f"Error getting/creating user: {e}")
             return None
         finally:
-            if connection and connection.is_connected():
+            if cursor:
                 cursor.close()
-                self.disconnect()
+            if connection and connection.is_connected():
+                connection.close()  
 
     def get_sessions_for_chart(self, user_id=None, limit=10):
         """Get sessions for chart data, including score and question type summary"""
-        connection = self.connect()
+        connection = self.get_connection() 
         if connection is None:
             return []
         
@@ -419,10 +397,11 @@ class Database:
 
     def get_flashcards_by_session(self, session_id):
         """Retrieve studycards for a specific study session"""
-        connection = self.connect()
+        connection = self.get_connection() 
         if connection is None:
             return []
         
+        cursor = None
         try:
             cursor = connection.cursor(dictionary=True)
             cursor.execute(
@@ -445,15 +424,18 @@ class Database:
             print(f"Error retrieving studycards: {e}")
             return []
         finally:
-            cursor.close()
-            self.disconnect()
+            if cursor: 
+                cursor.close()
+            if connection and connection.is_connected():
+                connection.close() 
 
     def delete_session(self, session_id):
         """Delete a study session and its associated cards"""
-        connection = self.connect()
+        connection = self.get_connection() 
         if connection is None:
             return False
         
+        cursor = None
         try:
             cursor = connection.cursor()
             
@@ -468,16 +450,18 @@ class Database:
             connection.rollback()
             return False
         finally:
-            if connection and connection.is_connected():
+            if cursor: 
                 cursor.close()
-                self.disconnect()
-    
+            if connection and connection.is_connected():
+                connection.close() 
+
     def get_user_tier_info(self, user_id):
         """Get user's subscription tier and usage information"""
-        connection = self.connect()
+        connection = self.get_connection() 
         if connection is None:
             return None
 
+        cursor = None
         try:
             cursor = connection.cursor(dictionary=True)
             
@@ -532,9 +516,10 @@ class Database:
             print(f"Error getting user tier info: {e}")
             return None
         finally:
-            if connection and connection.is_connected():
+            if cursor: 
                 cursor.close()
-                self.disconnect()
+            if connection and connection.is_connected():
+                connection.close() 
 
     def get_user_sessions_with_analytics(self, user_id):
         """Get user sessions with analytics data"""
@@ -556,10 +541,12 @@ class Database:
 
     def get_analytics_type_difficulty(self, user_id):
         """Get aggregated analytics data for question types and difficulties"""
-        connection = self.connect()
+        connection = self.get_connection()  
         if connection is None:
+            print("❌ Failed to connect to database")
             return None
         
+        cursor = None
         try:
             cursor = connection.cursor(dictionary=True)
             
@@ -605,7 +592,7 @@ class Database:
             print(f"Error getting analytics data: {e}")
             return None
         finally:
-            if connection and connection.is_connected():
+            if cursor:
                 cursor.close()
-                self.disconnect()
-                
+            if connection and connection.is_connected():
+                connection.close() 

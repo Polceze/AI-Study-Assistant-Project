@@ -23,14 +23,14 @@ header {
 }
 
 h1 {
-    color: #000000;
+    color: #2c5282;
     font-size: 2.5rem;
     margin-bottom: 20px;
 }
 
 p {
     margin-bottom: 15px;
-    color: #000000;
+    color: #173253;
     font-size: 0.9rem;
 }
 
@@ -100,12 +100,15 @@ body {
 }
 
 .section-title {
-    font-size: 1.5rem;
+    color: #2c5282;
     margin-bottom: 20px;
-    color: #0a0d16;
+    font-size: 1.2rem;
     display: flex;
     align-items: center;
     gap: 10px;
+    font-weight: 600;
+    border-bottom: 2px solid #e8f4fd;
+    padding-bottom: 12px;
 }
 
 .section-title i {
@@ -189,7 +192,11 @@ body {
 
 /* Ensure content doesn't hide behind fixed bar */
 body.has-topbar {
-    padding-top: 30px;
+    padding-top: 20px;
+}
+
+.upgrade-page.main-body {
+  margin-top: 0;     /* remove the space reserved for the topbar */
 }
 
 /* Auth Top Bar */
@@ -256,7 +263,7 @@ body.has-topbar {
   top: 20px;
   left: 0;
   height: auto;
-  width: 200px;
+  width: auto;
   padding-top: 60px; /* leave space for topbar */
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 1000;
@@ -276,7 +283,7 @@ body.has-topbar {
 .sidebar a {
   color: #080808;
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   padding: 15px 20px;
   display: block;
   transition: background 0.2s ease;
@@ -304,21 +311,18 @@ main, .main-body {
 .sidebar .upgrade a {
   display: block;
   padding: 12px 20px;
-  margin: 10px 15px;
+  margin: 10px 1px;
   text-align: center;
   font-weight: 500;
   color: #080808;
   border: 2px solid transparent;
   border-radius: 8px;
-
-  /* Subtle background */
   background: 
     linear-gradient(#fcfafa, #fcfafa) padding-box,  
     linear-gradient(90deg, #6e8efb, #a777e3) border-box; /* border gradient */
-  
   background-clip: padding-box, border-box;
   background-origin: border-box;
-  transition: transform 0.15s ease, background 0.3s ease;
+  
 }
 
 .sidebar .upgrade a:hover {
@@ -1315,13 +1319,61 @@ button .checkmark {
     padding: 25px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     width: 100%;
+    transform: translateY(-20px);
 }
+
 
 .analytics-controls {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 5rem;
+    align-items: end;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.08);
+    border: 2px solid #e8f4fd;
+}
+
+.apply-btn {
+    padding: 0.5rem 1rem;
+    background: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.apply-btn:hover {
+    background: #4338ca;
+}
+
+.analytics-card {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e8f4fd;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.analytics-card:hover {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.control-group label {
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.9rem;
 }
 
 .chart-container {
@@ -1445,7 +1497,15 @@ button .checkmark {
 }
 
 .session-questions {
-    background: #dddcdc;
+    background: #f1f1f1;
+    color: #000000;
+    border: 1px solid #e9ebec;
+    min-width: 90px;
+    font-size: 0.9rem;
+}
+
+.session-duration {
+    background: #e0dffa48;
     color: #000000;
     border: 1px solid #bbdefb;
     min-width: 90px;
@@ -1790,7 +1850,7 @@ button .checkmark {
     padding: 15px;
     border: 2px solid #e0e0e0;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: 0.9rem;
     margin-bottom: 20px;
     text-align: center;
 }
@@ -1806,7 +1866,7 @@ button .checkmark {
     border: none;
     padding: 15px 30px;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     width: 100%;
@@ -1815,11 +1875,11 @@ button .checkmark {
 
 .auth-modal-body button:hover {
     background: #5a7df9;
-    transform: translateY(-2px);
+    transform: translateY(-1px);
 }
 
 .auth-modal-footer p {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: #888;
     margin-top: 20px;
 }
@@ -3024,10 +3084,10 @@ button .checkmark {
 }
 
 /* Upgrade Page Specific Styles */
-.upgrade-page {
+.upgrade-page .main-body {
     gap: 40px; 
     font-size: 0.9rem;
-}
+} 
 
 .plan-section {
     display: flex;
@@ -3060,6 +3120,15 @@ button .checkmark {
 }
 
 .pricing-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    margin-top: -20px;
+}
+
+.faq-section {
     background: white;
     border-radius: 15px;
     padding: 25px;
@@ -3775,4 +3844,148 @@ button .checkmark {
 
 .recent-sessions::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* contact page styles */
+.main-body.contact-section {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 60vh;
+  height: auto;
+  justify-content: center;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  border: 2px solid rgba(0,0,0,0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #080808;
+  max-width: 900px;
+  margin: 24px auto;
+  transform: translateY(30px);
+}
+
+/* header */
+.main-body.contact-section header {
+  margin-bottom: 48px;
+}
+.main-body.contact-section h1 {
+  margin: 0 0 6px 0;
+  font-size: 1.6rem;
+}
+.main-body.contact-section .tagline {
+  margin: 0;
+  color: #444;
+  font-size: 0.95rem;
+}
+
+/* form */
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-row label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #222;
+  font-size: 0.95rem;
+}
+
+.form-row input,
+.form-row textarea {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fafafa;
+  font-size: 1rem;
+  color: #111;
+  outline: none;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.form-row input:focus,
+.form-row textarea:focus {
+  border-color: rgba(110,142,251,0.9);
+  box-shadow: 0 6px 16px rgba(110,142,251,0.06);
+}
+
+/* inline errors */
+.error-msg {
+  color: #c23;
+  font-size: 0.85rem;
+  margin-top: 6px;
+  min-height: 18px;
+}
+
+/* actions */
+.form-actions {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.submit-btn {
+  background: linear-gradient(90deg, #3a8ef6, #8f3af6);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.submit-btn[disabled] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* spinner */
+.spinner {
+  border: 2px solid rgba(255,255,255,0.6);
+  border-top: 2px solid rgba(255,255,255,1);
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
+
+/* feedback boxes */
+.contact-feedback {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.contact-feedback.success {
+  background: #e6fbf0;
+  color: #097a3d;
+  border: 1px solid rgba(9,122,61,0.12);
+}
+
+.contact-feedback.error {
+  background: #fff2f2;
+  color: #8a1f1f;
+  border: 1px solid rgba(138,31,31,0.08);
+}
+
+/* helper */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* keep layout responsive */
+@media (max-width: 640px) {
+  .main-body.contact-section { padding: 16px; margin: 12px; }
+  .submit-btn { width: 100%; justify-content: center; }
 }

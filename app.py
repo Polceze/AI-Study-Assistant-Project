@@ -571,13 +571,18 @@ def get_sessions_route():
     """Get all study sessions for current user"""
     try:
         user_id = session.get('user_id')
+        
         if not user_id:
             return jsonify({"status": "error", "message": "Authentication required"}), 401
             
-        sessions = get_user_sessions(user_id)
-        return jsonify({"status": "success", "sessions": sessions})
+        result = db.get_sessions(user_id)
+        
+        return jsonify(result)
         
     except Exception as e:
+        print(f"❌ Error in /get_sessions: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 @app.route('/get_flashcards/<int:session_id>', methods=['GET'])
@@ -831,6 +836,141 @@ def analytics_type_difficulty():
     except Exception as e:
         print(f"Error in analytics_type_difficulty: {e}")
         return jsonify({"status": "error", "message": "Internal server error"}), 500
+
+@app.route('/analytics/type-difficulty-filtered', methods=['POST'])
+def analytics_type_difficulty_filtered():
+    """Get analytics for specific session IDs"""
+    connection = None
+    cursor = None
+    try:       
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"status": "error", "message": "Authentication required"}), 401
+        
+        data = request.get_json()
+        session_ids = data.get('session_ids', [])
+        
+        if not session_ids:
+            return jsonify({
+                "status": "success",
+                "data": {
+                    "question_types": [],
+                    "difficulties": []
+                }
+            })
+        
+        # Convert to tuple for SQL IN clause
+        session_ids_tuple = tuple(session_ids)
+        if len(session_ids) == 1:
+            session_ids_tuple = f"({session_ids[0]})"
+        
+        connection = db.get_connection()
+        if not connection:
+            return jsonify({"status": "error", "message": "Database connection failed"}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # Query for question type analytics
+        type_query = f"""
+            SELECT 
+                sc.question_type,
+                COUNT(*) as total_questions,
+                SUM(CASE WHEN sc.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers
+            FROM studycards sc
+            WHERE sc.session_id IN {session_ids_tuple}
+            GROUP BY sc.question_type
+        """
+        cursor.execute(type_query)
+        type_data = cursor.fetchall()
+        
+        # Query for difficulty analytics
+        difficulty_query = f"""
+            SELECT 
+                sc.difficulty,
+                COUNT(*) as total_questions,
+                SUM(CASE WHEN sc.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers
+            FROM studycards sc
+            WHERE sc.session_id IN {session_ids_tuple}
+            GROUP BY sc.difficulty
+        """
+        
+        cursor.execute(difficulty_query)
+        difficulty_data = cursor.fetchall()
+        
+        result = {
+            'question_types': type_data,
+            'difficulties': difficulty_data
+        }
+        
+        return jsonify({
+            "status": "success",
+            "data": result
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": "Internal server error"}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
+
+@app.route('/debug/pool-status')
+def debug_pool_status():
+    try:
+        # Use the public API, not private attributes
+        try:
+            # Try to get a connection to test if pool works
+            test_conn = db.get_connection()
+            if test_conn:
+                test_conn.close()
+                status = "Pool working"
+            else:
+                status = "Pool failed"
+        except Exception as e:
+            status = f"Pool error: {e}"
+        
+        return jsonify({
+            "status": "success",
+            "pool_status": status,
+            "pool_size": db.pool.pool_size if hasattr(db, 'pool') else 'No pool'
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Route to render contact page
+@app.route('/contact', methods=['GET'])
+def contact_page():
+    return render_template('contact.html')
+
+# AJAX endpoint to receive contact form and send email
+@app.route('/contact', methods=['POST'])
+def send_contact():
+    try:
+        data = request.get_json() or {}
+        name = data.get('name', '').strip()
+        email = data.get('email', '').strip()
+        message_body = data.get('message', '').strip()
+
+        # Basic server-side validation
+        if not name or not email or not message_body:
+            return jsonify({'status': 'error', 'message': 'Please provide name, email and message.'}), 400
+
+        # Build email
+        recipients = [os.environ.get('CONTACT_DESTINATION_EMAIL', app.config.get('MAIL_USERNAME'))]
+        subject = f"Contact form message from {name}"
+        body = f"Name: {name}\nEmail: {email}\n\nMessage:\n{message_body}"
+
+        msg = Message(subject=subject, sender=app.config.get('MAIL_DEFAULT_SENDER'), recipients=recipients, body=body, reply_to=email)
+        mail.send(msg)
+
+        return jsonify({'status': 'success', 'message': 'Message sent successfully!'}), 200
+
+    except Exception as e:
+        print("Error sending contact email:", e)
+        return jsonify({'status': 'error', 'message': 'Failed to send message. Please try again later.'}), 500
 
 if __name__ == '__main__':
     # Use environment variable for host/port in production
