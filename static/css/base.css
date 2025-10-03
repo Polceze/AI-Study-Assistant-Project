@@ -1,0 +1,151 @@
+/* CSS Custom Properties (Variables) */
+:root {
+  /* Primary Colors - Amber/Gold theme */
+  --primary-color: #f59e0b;      /* Vibrant amber */
+  --primary-dark: #d97706;       /* Darker amber */
+  --primary-light: #fbbf24;      /* Lighter amber */
+  --secondary-color: #7c3aed;    /* Purple accent */
+  --accent-color: #10b981;       /* Emerald green for success */
+  --danger-color: #ef4444;       /* Red for errors */
+  --warning-color: #f59e0b;      /* Amber for warnings */
+  
+  /* Neutrals - Softer dark theme */
+  --text-primary: #e2e8f0;       /* Soft light text */
+  --text-secondary: #cbd5e1;     /* Medium light text */
+  --text-muted: #94a3b8;         /* Muted blue-gray */
+  --bg-primary: #1e293b;         /* Softer dark blue (was 0f172a) */
+  --bg-secondary: #334155;       /* Medium dark */
+  --bg-tertiary: #475569;        /* Lighter for contrast */
+  --border-color: #64748b;       /* Softer borders */
+  --border-light: #94a3b8;       /* Lighter borders */
+
+  /* Semantic colors - Softer variants */
+  --success-bg: #065f46;         /* Dark but not too dark green */
+  --success-border: #10b981;     /* Emerald border */
+  --warning-bg: #92400e;         /* Softer dark amber */
+  --warning-border: #f59e0b;     /* Amber border */
+  --error-bg: #991b1b;           /* Softer dark red */
+  --error-border: #ef4444;       /* Red border */
+
+  
+  /* Spacing scale (8px base) */
+  --space-xs: 0.25rem;   /* 4px */
+  --space-sm: 0.5rem;    /* 8px */
+  --space-md: 1rem;      /* 16px */
+  --space-lg: 1.5rem;    /* 24px */
+  --space-xl: 2rem;      /* 32px */
+  --space-2xl: 3rem;     /* 48px */
+  --space-3xl: 4rem;     /* 64px */
+  
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 0.6875rem;   /* 11px (was 12px) */
+  --font-size-sm: 0.75rem;     /* 12px (was 14px) */
+  --font-size-base: 0.875rem;  /* 14px (was 16px) */    
+  --font-size-lg: 1rem;        /* 16px (was 18px) */
+  --font-size-xl: 1.125rem;    /* 18px (was 20px) */
+  --font-size-2xl: 1.25rem;    /* 20px (was 24px) */
+  --font-size-3xl: 1.5rem;     /* 24px (was 30px) */
+  
+  /* Border radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
+  
+  /* Z-index scale */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal: 1040;
+  --z-popover: 1050;
+  --z-tooltip: 1060;
+}
+
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography scale */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-bottom: var(--space-md);
+}
+
+h1 { font-size: var(--font-size-3xl); }
+h2 { font-size: var(--font-size-2xl); }
+h3 { font-size: var(--font-size-xl); }
+h4 { font-size: var(--font-size-lg); }
+h5 { font-size: var(--font-size-base); }
+h6 { font-size: var(--font-size-sm); }
+
+p {
+  margin-bottom: var(--space-md);
+}
+
+/* Links */
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--primary-dark);
+}
+
+/* Lists */
+ul, ol {
+  margin-bottom: var(--space-md);
+  padding-left: var(--space-xl);
+}
+
+/* Images */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Utility classes for mobile-first */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1200px;
+    padding: 0 var(--space-xl);
+  }
+}

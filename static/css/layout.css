@@ -1,0 +1,193 @@
+/* ===== APP STRUCTURE ===== */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-body {
+  flex: 1;
+  width: 100%;
+  padding: var(--space-lg) 0;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.title {
+  margin-bottom: var(--space-md);
+}
+
+.tagline {
+  color: var(--text-secondary);
+  font-size: var(--font-size-lg);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  font-size: var(--font-size-xl);
+}
+
+.section-title .icon {
+  font-size: var(--font-size-lg);
+}
+
+/* Your existing basic grid */
+.grid {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.grid-cols-1 { grid-template-columns: 1fr; }
+.grid-cols-2 { grid-template-columns: 1fr; }
+
+@media (min-width: 768px) {
+  .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+}
+
+.main-content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-content {
+  flex: 1;
+  padding: var(--space-lg) 0;
+}
+
+.auth-topbar {
+  position: sticky;
+  top: 0;
+  left: 0;              /* stretch from left edge */
+  right: 0;             /* to right edge */
+  width: 100%; 
+  height: 60px; 
+  z-index: var(--z-fixed);
+  display: none; /* Hide by default, show only when needed */
+}
+
+/* Show old topbar only when user is authenticated and on desktop */
+body.has-topbar .auth-topbar {
+  display: block;
+}
+
+@media (max-width: 1023px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .desktop-sidebar {
+    display: none;
+  }
+
+  .main-content-wrapper {
+    margin-left: 0;
+    padding-top: 20px; /* Account for mobile header */
+  }
+  
+  .mobile-header {
+    display: block;
+  }
+}
+
+/* Tablet specific sidebar behavior */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .desktop-sidebar {
+    width: 200px;
+    display: block; /* Show sidebar on tablet */
+  }
+  
+  .main-content-wrapper {
+    margin-left: 200px;
+    width: calc(100% - 200px);
+  }
+
+  .mobile-header {
+    display: none; /* Hide mobile header on tablet */
+  }
+}
+
+/* Desktop: Sidebar layout */
+@media (min-width: 1024px) {
+  .app-container {
+    flex-direction: row;
+  }
+  
+  .main-content-wrapper {
+    margin-left: 250px; /* Sidebar width */
+    width: calc(100% - 250px);
+  }
+  
+  /* Hide mobile header on desktop */
+  .mobile-header {
+    display: none;
+  }
+}
+
+/* Enhanced container system */
+.container {
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 0 var(--space-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1200px;
+    padding: 0 var(--space-xl);
+  }
+}
+
+/* Enhanced grid utilities (building on your .grid class) */
+.grid-auto-fit {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.grid-cols-3 { grid-template-columns: 1fr; }
+.grid-cols-4 { grid-template-columns: 1fr; }
+
+@media (min-width: 768px) {
+  .grid-cols-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Flexbox utilities */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+
+/* Spacing utilities */
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+
+/* Layout components */
+.card-grid {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.layout-centered {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+}

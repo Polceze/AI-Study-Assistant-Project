@@ -5,7 +5,9 @@ let allSessions = [];
 let currentPage = 1;
 const sessionsPerPage = 5;
 let progressChart = null;
-let currentUser = null;
+let userSessionCount = 0;
+const userSessionLimit = 3;
+
 // Advanced Analytics Functions
 let trendsChart = null;
 let typePerformanceChart = null;
@@ -13,6 +15,14 @@ let difficultyChart = null;
 let sessionStartTime = null;
 let currentRangeFilter = '5';
 let currentTimeFilter = '30';
+
+let userSessionAllowance = {
+    allowed: true,
+    remaining: 999,
+    limit: 999,
+    reset_in: "unlimited",
+    period: "daily"
+};  
 
 // function to limit how often setUniformCardHeights runs during resizing
 function debounce(func, wait) {
@@ -30,6 +40,12 @@ function debounce(func, wait) {
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     console.log('AI Study Buddy loaded successfully!');
+    initMobileNavigation();
+
+    // Sync user data after auth check
+    setTimeout(() => {
+        syncMobileUserData();
+    }, 1000);
     
     // Initialize card flip functionality
     const flashcardElements = document.querySelectorAll('.flashcard');
@@ -205,44 +221,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('contact-form');
     const submitBtn = document.getElementById('submit-btn');
 
-    form.addEventListener('submit', async function (e) {
-        e.preventDefault();
+    if (form && submitBtn) {
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
 
-        document.getElementById('contact-success').style.display = 'none';
-        document.getElementById('contact-error').style.display = 'none';
+            document.getElementById('contact-success').style.display = 'none';
+            document.getElementById('contact-error').style.display = 'none';
 
-        if (!validateForm(form)) return;
+            if (!validateForm(form)) return;
 
-        setButtonLoading(submitBtn, true);
+            setButtonLoading(submitBtn, true);
 
-        const payload = {
-            name: form.name.value.trim(),
-            email: form.email.value.trim(),
-            message: form.message.value.trim()
-        };
+            const payload = {
+                name: form.name.value.trim(),
+                email: form.email.value.trim(),
+                message: form.message.value.trim()
+            };
 
-        try {
-            const res = await fetch('/contact', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            try {
+                const res = await fetch('/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-            const data = await res.json();
-            if (res.ok && data && data.status === 'success') {
-                showSuccess(data.message || 'Message sent successfully');
-                form.reset();
-            } else {
-                const m = (data && data.message) ? data.message : 'Failed to send message';
-                showError('❌ ' + m);
+                const data = await res.json();
+                if (res.ok && data && data.status === 'success') {
+                    showSuccess(data.message || 'Message sent successfully');
+                    form.reset();
+                } else {
+                    const m = (data && data.message) ? data.message : 'Failed to send message';
+                    showError('❌ ' + m);
+                }
+            } catch (err) {
+                console.error('Contact send error', err);
+                showError('❌ Could not send message. Try again later.');
+            } finally {
+                setButtonLoading(submitBtn, false);
             }
-        } catch (err) {
-            console.error('Contact send error', err);
-            showError('❌ Could not send message. Try again later.');
-        } finally {
-            setButtonLoading(submitBtn, false);
-        }
-    });
+        });
+    }
+
 
 });
 
@@ -254,6 +273,44 @@ document.addEventListener('click', function(e) {
         openSessionModal(sessionId);
     }
 });
+
+// Mobile navigation functionality
+function initMobileNavigation() {
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
+    const mobileCloseBtn = document.getElementById('mobile-close-btn');
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+
+    if (!mobileMenuToggle || !mobileMenuOverlay) return;
+
+    function openMobileMenu() {
+        mobileMenuOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileMenu() {
+        mobileMenuOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    mobileMenuToggle.addEventListener('click', openMobileMenu);
+    mobileCloseBtn.addEventListener('click', closeMobileMenu);
+    mobileLogoutBtn.addEventListener('click', handleLogout);
+
+    // Close menu when clicking outside
+    mobileMenuOverlay.addEventListener('click', (e) => {
+        if (e.target === mobileMenuOverlay) {
+            closeMobileMenu();
+        }
+    });
+
+    // Close on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && mobileMenuOverlay.classList.contains('active')) {
+            closeMobileMenu();
+        }
+    });
+}   
 
 // Generate questions and studycards function
 function generateFlashcards() {
@@ -633,6 +690,8 @@ function saveFlashcards() {
         if (data.status === 'success') {
             // Mark as saved and update UI
             handleSaveSuccess();
+            updateGenerateButtonState();
+            userSessionCount++;
             sessionStartTime = null; // Reset session timer
             currentSessionId = null; // Reset session ID
         } else {
@@ -640,6 +699,7 @@ function saveFlashcards() {
             saveBtn.disabled = false;
         }
     })
+
     .catch(error => {
         console.error('Error:', error);
         alert('Error saving session');
@@ -650,73 +710,6 @@ function saveFlashcards() {
             saveBtn.textContent = originalText;
         }
     });
-}
-
-function initProgressChart() {
-    const canvas = document.getElementById('progress-chart');
-    if (!canvas) {
-        return null;
-    }
-
-    const ctx = canvas.getContext('2d');
-
-    progressChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [
-                {
-                    label: 'Score (%)',
-                    data: [],
-                    borderColor: '#6e8efb',
-                    backgroundColor: 'rgba(110, 142, 251, 0.1)',
-                    yAxisID: 'y',
-                    tension: 0.3,
-                    fill: true
-                },
-                {
-                    label: 'Avg Time/Question (s)',
-                    data: [],
-                    borderColor: '#a777e3',
-                    backgroundColor: 'rgba(167, 119, 227, 0.1)',
-                    yAxisID: 'y1',
-                    tension: 0.3,
-                    fill: true
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: {
-                        display: true,
-                        text: 'Score (%)'
-                    },
-                    min: 0,
-                    max: 100
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    title: {
-                        display: true,
-                        text: 'Time (seconds)'
-                    },
-                    grid: {
-                        drawOnChartArea: false
-                    }
-                }
-            }
-        }
-    });
-
-    return progressChart;
 }
 
 function updateProgressChart(sessions, limit = 5) {
@@ -1136,7 +1129,8 @@ function checkSavedAuth() {
         
         if (!savedEmail || !savedUserId) {
             showAuthModal();
-            resolve(false); // Resolve with false for not authenticated
+            disableAppInterface();
+            resolve(false); 
             return;
         }
 
@@ -1192,11 +1186,29 @@ function setUserAuthenticated(user) {
     
     if (topbarEmail) topbarEmail.textContent = user.email;
     if (mobileTopbarEmail) mobileTopbarEmail.textContent = user.email;
-    if (authTopbar) authTopbar.style.display = 'block';
+    
+    // Show/hide topbar based on screen size
+    if (authTopbar) {
+        if (window.innerWidth >= 1024) {
+        // Desktop: show old topbar
+        authTopbar.style.display = 'block';
+        document.body.classList.add('has-topbar');
+        } else {
+        // Mobile: hide old topbar, rely on mobile header
+        authTopbar.style.display = 'none';
+        document.body.classList.remove('has-topbar');
+        }
+    }
     
     document.body.classList.add('has-topbar');
     localStorage.setItem('userEmail', user.email);
     localStorage.setItem('userId', user.id);
+
+    // Sync mobile data immediately
+    setTimeout(() => {
+        syncMobileUserData();
+        updateTierInfo(); // This will trigger another sync when it completes
+    }, 100);
 
     // Enable app interface but make sure save button is in correct state
     enableAppInterface();
@@ -1223,7 +1235,9 @@ function setUserAuthenticated(user) {
     }, 100);
     
     // Set interval to update tier info every minute
-    setInterval(updateTierInfo, 60000);
+    updateTierInfo();
+    checkSessionAllowance();
+    initSessionCount();
 }
 
 function handleLogin() {
@@ -1332,7 +1346,7 @@ function handleLogout() {
 function resetAuthButton() {
     const submitBtn = document.getElementById('auth-submit');
     if (submitBtn) {
-        submitBtn.textContent = 'Continue Studying';
+        submitBtn.textContent = 'Sign in';
         submitBtn.disabled = false;
     }
 }
@@ -1449,6 +1463,9 @@ function handleSaveSuccess() {
     
     // Reload sessions to update progress
     loadSessions();
+    updateTierInfo();
+    checkSessionAllowance();
+    refreshSessionCount();
 }
 
 // Helper function to clear flashcards UI only
@@ -1728,17 +1745,6 @@ function formatUTCDate(dateString) {
     }`;
 }
 
-// Function to handle logo click and refresh page
-function setupLogoRefresh() {
-    const logo = document.getElementById('logo');
-    
-    if (logo) {
-        logo.addEventListener('click', function() {           
-            window.location.reload();
-        });
-    }
-}
-
 // Function to fetch and update tier information
 async function updateTierInfo() {
     try {
@@ -1783,6 +1789,9 @@ async function updateTierInfo() {
             if (mobileResetElement) {
                 mobileResetElement.textContent = `Resets in: ${tierInfo.reset_in}`;
             }
+
+            setTimeout(syncMobileUserData, 50);
+
         } else {
             console.error('Failed to fetch tier info:', data.message);
             // Fallback for both desktop and mobile
@@ -1799,17 +1808,8 @@ async function updateTierInfo() {
         }
     } catch (error) {
         console.error('Error fetching tier info:', error);
-        // Fallback for both on error
-        const fallbackText = 'Free Plan';
-        document.querySelectorAll('.tier-graphic').forEach(el => {
-            el.textContent = fallbackText;
-        });
-        document.querySelectorAll('.sessions-remaining').forEach(el => {
-            el.textContent = 'Sessions remaining: 3';
-        });
-        document.querySelectorAll('.resets-in').forEach(el => {
-            el.textContent = 'Resets in: 24h 0m';
-        });
+        // Sync mobile data even on error to ensure consistency
+        setTimeout(syncMobileUserData, 50);
     }
 }
 
@@ -1837,6 +1837,9 @@ function disableAppInterface() {
             </div>
         `;
     }
+
+    // Show auth modal
+    showAuthModal();
     
     // Reset score display
     const scoreContainer = document.getElementById('score-container');
@@ -1968,31 +1971,6 @@ function syncMobileDesktopData() {
     }
 }
 
-// Initialize all charts
-function initAllCharts() {
-    try {
-        if (document.getElementById('progress-chart') && !progressChart) {
-            progressChart = initProgressChart();
-        }
-        if (document.getElementById('trends-chart') && !trendsChart) {
-            trendsChart = initTrendsChart();
-        }
-        if (document.getElementById('type-performance-chart') && !typePerformanceChart) {
-            typePerformanceChart = initTypePerformanceChart();
-        }
-        if (document.getElementById('difficulty-chart') && !difficultyChart) {
-            difficultyChart = initDifficultyChart();
-        }
-        
-        // Load data after charts are initialized
-        if (currentUser) {
-            loadSessions(1);
-        }
-    } catch (error) {
-        console.error('Error initializing charts:', error);
-    }
-}
-
 // Calculate comprehensive analytics
 function calculateAdvancedAnalytics(sessions) {
     if (!sessions || !Array.isArray(sessions)) {
@@ -2107,7 +2085,296 @@ function formatDate(dateString) {
     });
 }
 
+function enhanceChartTextBrightness(chart) {
+    if (!chart) return;
+    
+    // Bright color palette for better contrast
+    const brightColors = {
+        text: '#f1f5f9', // Very bright white
+        grid: 'rgba(226, 232, 240, 0.4)', // Brighter grid lines
+        border: 'rgba(226, 232, 240, 0.6)' // Brighter border
+    };
+    
+    // Apply bright colors to chart options
+    if (chart.options && chart.options.scales) {
+        // X-axis styling
+        if (chart.options.scales.x) {
+            chart.options.scales.x.ticks = {
+                ...chart.options.scales.x.ticks,
+                color: brightColors.text,
+                font: {
+                    weight: '600'
+                }
+            };
+            chart.options.scales.x.grid = {
+                ...chart.options.scales.x.grid,
+                color: brightColors.grid
+            };
+            chart.options.scales.x.border = {
+                color: brightColors.border
+            };
+        }
+        
+        // Y-axis styling
+        if (chart.options.scales.y) {
+            chart.options.scales.y.ticks = {
+                ...chart.options.scales.y.ticks,
+                color: brightColors.text,
+                font: {
+                    weight: '600'
+                }
+            };
+            chart.options.scales.y.grid = {
+                ...chart.options.scales.y.grid,
+                color: brightColors.grid
+            };
+            chart.options.scales.y.border = {
+                color: brightColors.border
+            };
+        }
+        
+        // Secondary Y-axis (for progress chart)
+        if (chart.options.scales.y1) {
+            chart.options.scales.y1.ticks = {
+                ...chart.options.scales.y1.ticks,
+                color: brightColors.text,
+                font: {
+                    weight: '600'
+                }
+            };
+            chart.options.scales.y1.grid = {
+                ...chart.options.scales.y1.grid,
+                color: brightColors.grid
+            };
+        }
+    }
+    
+    // Legend styling
+    if (chart.options.plugins && chart.options.plugins.legend) {
+        chart.options.plugins.legend.labels = {
+            ...chart.options.plugins.legend.labels,
+            color: brightColors.text,
+            font: {
+                weight: '600'
+            }
+        };
+    }
+    
+    // Title styling
+    if (chart.options.plugins && chart.options.plugins.title) {
+        chart.options.plugins.title.color = brightColors.text;
+    }
+    
+    // Update the chart
+    chart.update();
+}
+
 // Chart initialization functions
+function initProgressChart() {
+    const canvas = document.getElementById('progress-chart');
+    if (!canvas) return null;
+
+    const ctx = canvas.getContext('2d');
+
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Score (%)',
+                    data: [],
+                    borderColor: '#6e8efb',
+                    backgroundColor: 'rgba(110, 142, 251, 0.1)',
+                    yAxisID: 'y',
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Avg Time/Question (s)',
+                    data: [],
+                    borderColor: '#a777e3',
+                    backgroundColor: 'rgba(167, 119, 227, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Score (%)',
+                        color: '#f1f5f9', // Bright white
+                        font: {
+                            weight: '600',
+                            size: 12
+                        }
+                    },
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        color: '#f1f5f9', // Bright white
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(226, 232, 240, 0.3)' // Brighter grid
+                    },
+                    border: {
+                        color: 'rgba(226, 232, 240, 0.5)'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Time (seconds)',
+                        color: '#f1f5f9', // Bright white
+                        font: {
+                            weight: '600',
+                            size: 12
+                        }
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                        color: 'rgba(226, 232, 240, 0.3)'
+                    },
+                    ticks: {
+                        color: '#f1f5f9', // Bright white
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    border: {
+                        color: 'rgba(226, 232, 240, 0.5)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#f1f5f9', // Bright white
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(226, 232, 240, 0.2)'
+                    },
+                    border: {
+                        color: 'rgba(226, 232, 240, 0.5)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#f1f5f9', // Bright white
+                        font: {
+                            weight: '600',
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#f1f5f9',
+                    borderColor: '#f59e0b',
+                    borderWidth: 1
+                }
+            }
+        }
+    });
+
+    return chart;
+}
+
+function initDifficultyChart() {
+    const canvas = document.getElementById('difficulty-chart');
+    if (!canvas) return null;
+
+    return new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Normal', 'Difficult'],
+            datasets: [{
+                label: 'Accuracy %',
+                data: [0, 0],
+                backgroundColor: ['#48bb78', '#f56565'],
+                borderWidth: 0,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Accuracy (%)',
+                        color: '#f1f5f9',
+                        font: {
+                            weight: '600',
+                            size: 12
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(226, 232, 240, 0.3)'
+                    },
+                    ticks: {
+                        color: '#f1f5f9',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    border: {
+                        color: 'rgba(226, 232, 240, 0.5)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#f1f5f9',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(226, 232, 240, 0.2)'
+                    },
+                    border: {
+                        color: 'rgba(226, 232, 240, 0.5)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#f1f5f9',
+                    borderColor: '#f59e0b',
+                    borderWidth: 1
+                }
+            }
+        }
+    });
+}
+
 function initTrendsChart() {
     const canvas = document.getElementById('trends-chart');
     if (!canvas) return null;
@@ -2120,7 +2387,7 @@ function initTrendsChart() {
                 {
                     label: 'Number of Questions',
                     data: [],
-                    borderColor: '#48bb78', // Green for volume
+                    borderColor: '#48bb78',
                     backgroundColor: 'rgba(72, 187, 120, 0.1)',
                     yAxisID: 'y',
                     tension: 0.4,
@@ -2130,7 +2397,7 @@ function initTrendsChart() {
                 {
                     label: 'Session Duration (min)',
                     data: [],
-                    borderColor: '#f59e0b', // Amber for time
+                    borderColor: '#f59e0b',
                     backgroundColor: 'rgba(245, 158, 11, 0.1)',
                     yAxisID: 'y1',
                     tension: 0.4,
@@ -2151,10 +2418,23 @@ function initTrendsChart() {
                     title: { 
                         display: true, 
                         text: 'Questions', 
-                        color: '#48bb78'
+                        color: '#f1f5f9',
+                        font: {
+                            weight: '600',
+                            size: 12
+                        }
                     },
                     min: 0,
-                    grid: { color: 'rgba(72, 187, 120, 0.1)' }
+                    grid: { color: 'rgba(226, 232, 240, 0.3)' },
+                    ticks: {
+                        color: '#f1f5f9',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    border: {
+                        color: 'rgba(226, 232, 240, 0.5)'
+                    }
                 },
                 y1: {
                     type: 'linear',
@@ -2163,15 +2443,54 @@ function initTrendsChart() {
                     title: { 
                         display: true, 
                         text: 'Duration (min)', 
-                        color: '#f59e0b'
+                        color: '#f1f5f9',
+                        font: {
+                            weight: '600',
+                            size: 12
+                        }
                     },
-                    grid: { drawOnChartArea: false }
+                    grid: { drawOnChartArea: false },
+                    ticks: {
+                        color: '#f1f5f9',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    border: {
+                        color: 'rgba(226, 232, 240, 0.5)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#f1f5f9',
+                        font: {
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(226, 232, 240, 0.2)'
+                    },
+                    border: {
+                        color: 'rgba(226, 232, 240, 0.5)'
+                    }
                 }
             },
             plugins: {
-                legend: { display: true },
+                legend: {
+                    labels: {
+                        color: '#f1f5f9',
+                        font: {
+                            weight: '600',
+                            size: 12
+                        }
+                    }
+                },
                 tooltip: { 
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#f1f5f9',
+                    borderColor: '#f59e0b',
+                    borderWidth: 1,
                     callbacks: {
                         label: function(context) {
                             let label = context.dataset.label || '';
@@ -2218,39 +2537,33 @@ function initTypePerformanceChart() {
     });
 }
 
-function initDifficultyChart() {
-    const canvas = document.getElementById('difficulty-chart');
-    if (!canvas) return null;
-    
-    return new Chart(canvas.getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: ['Normal', 'Difficult'],
-            datasets: [{
-                label: 'Accuracy %',
-                data: [0, 0],
-                backgroundColor: ['#48bb78', '#f56565'],
-                borderWidth: 0,
-                borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    title: { display: true, text: 'Accuracy (%)' },
-                    grid: { color: 'rgba(0, 0, 0, 0.1)' }
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)' }
-            }
+// Initialize all charts
+function initAllCharts() {
+    try {
+        if (document.getElementById('progress-chart') && !progressChart) {
+            progressChart = initProgressChart();
+            if (progressChart) enhanceChartTextBrightness(progressChart);
         }
-    });
+        if (document.getElementById('trends-chart') && !trendsChart) {
+            trendsChart = initTrendsChart();
+            if (trendsChart) enhanceChartTextBrightness(trendsChart);
+        }
+        if (document.getElementById('type-performance-chart') && !typePerformanceChart) {
+            typePerformanceChart = initTypePerformanceChart();
+            if (typePerformanceChart) enhanceChartTextBrightness(typePerformanceChart);
+        }
+        if (document.getElementById('difficulty-chart') && !difficultyChart) {
+            difficultyChart = initDifficultyChart();
+            if (difficultyChart) enhanceChartTextBrightness(difficultyChart);
+        }
+        
+        // Load data after charts are initialized
+        if (currentUser) {
+            loadSessions(1);
+        }
+    } catch (error) {
+        console.error('Error initializing charts:', error);
+    }
 }
 
 // Chart update functions
@@ -2597,3 +2910,195 @@ function setButtonLoading(button, isLoading) {
         button.textContent = 'Send Message';
     }
 }
+
+// Function to update UI based on session allowance
+function updateSessionAllowanceUI() {
+    const generateBtn = document.getElementById('generate-btn');
+    const allowanceDisplay = document.getElementById('session-allowance-display');
+    
+    if (!userSessionAllowance.allowed) {
+        // Disable generate button
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.title = `Usage limit reached. Resets in ${userSessionAllowance.reset_in}`;
+        }
+        
+        // Show allowance display
+        if (allowanceDisplay) {
+            allowanceDisplay.innerHTML = `
+                <div class="allowance-warning">
+                    <small>⚠️ Limit reached </small>
+                    <small>Resets in ${userSessionAllowance.reset_in}</small>
+                </div>
+            `;
+        }
+    } else {
+        // Enable generate button
+        if (generateBtn) {
+            generateBtn.disabled = false;
+        }
+        
+        // Update allowance display
+        if (allowanceDisplay) {
+            allowanceDisplay.innerHTML = `
+                <div class="allowance-info">
+                    <small>Sessions remaining: ${userSessionAllowance.remaining}</small>
+                    <small>Resets in ${userSessionAllowance.reset_in}</small>
+                </div>
+            `;
+        }
+    }
+}
+
+// Function to check session allowance
+async function checkSessionAllowance() {
+    try {
+        const response = await fetch('/user/session-allowance');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            userSessionAllowance = data.allowance;
+            updateSessionAllowanceUI();
+        }
+    } catch (error) {
+        console.error('Error checking session allowance:', error);
+    }
+}
+
+function updateGenerateButtonState() {
+    const generateBtn = document.getElementById('generate-btn');
+    
+    // Safe check - only proceed if button exists
+    if (!generateBtn) {
+        console.log('Generate button not found on this page');
+        return;
+    }
+    
+    // Check BOTH: session allowance AND user tier
+    const isFreeTier = currentUser && currentUser.tier === 'free';
+    
+    if (isFreeTier && userSessionCount >= 3) {
+        // Free user with no daily sessions left
+        generateBtn.disabled = true;
+        generateBtn.title = `Daily limit reached (${userSessionCount}/3)`;
+    } else if (userSessionAllowance.remaining <= 0) {
+        // Paid user with no sessions left
+        generateBtn.disabled = true;
+        generateBtn.title = `${userSessionAllowance.period} limit reached`;
+    } else {
+        // User has available sessions
+        generateBtn.disabled = false;
+        generateBtn.title = 'Generate studycards from your notes';
+    }
+}
+
+async function initSessionCount() {
+    // Only run this on pages that have the generate button
+    const generateBtn = document.getElementById('generate-btn');
+    if (!generateBtn) {
+        console.log('Skipping session count init - no generate button on this page');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/user/session-count');
+        const data = await response.json();
+        if (data.status === 'success') {
+            userSessionCount = data.session_count;
+            updateGenerateButtonState();
+        }
+    } catch (error) {
+        console.error('Error fetching session count:', error);
+        // Don't call updateGenerateButtonState on error to avoid cascade
+    }
+}
+
+async function refreshSessionCount() {
+    const generateBtn = document.getElementById('generate-btn');
+    if (!generateBtn) return;
+    
+    try {
+        const response = await fetch('/user/session-count?t=' + Date.now());
+        const data = await response.json();
+        if (data.status === 'success') {
+            userSessionCount = data.session_count;
+            updateGenerateButtonState();
+            console.log('Session count refreshed:', userSessionCount);
+        }
+    } catch (error) {
+        console.error('Error refreshing session count:', error);
+    }
+}
+
+// When a paid user exhausts their limit
+function checkTierStatus(silent = false) {
+    if (currentUserTier !== 'free' && userSessionAllowance.remaining === 0) {
+        const message = `You've used all your ${userSessionAllowance.period} sessions. Visit the upgrade page to renew or choose a new plan.`;
+        
+        if (silent) {
+            return message; // Return message for integration
+        } else {
+            showModal("Subscription Limit Reached", message, "Upgrade Now", navigateToUpgrade);
+            return message; // Still return for consistency
+        }
+    }
+    return null; // No warning needed
+}
+
+// Sync user data to mobile menu
+function syncMobileUserData() {
+    console.log('Syncing mobile user data...');
+    
+    const userEmail = document.getElementById('topbar-email');
+    const mobileUserEmail = document.getElementById('mobile-user-email');
+    const tierGraphic = document.getElementById('user-tier');
+    const sessionsRemaining = document.getElementById('sessions-remaining');
+    const resetsIn = document.getElementById('resets-in');
+    const mobileTierLabel = document.getElementById('mobile-tier-label');
+    const mobileSessionsInfo = document.getElementById('mobile-sessions-info');
+    const mobileTierBadge = document.getElementById('mobile-tier-badge');
+
+    // Sync user email
+    if (userEmail && mobileUserEmail) {
+        mobileUserEmail.textContent = userEmail.textContent || 'Not signed in';
+    }
+
+    // Sync tier information with enhanced styling
+    if (tierGraphic && mobileTierLabel) {
+        const tierText = tierGraphic.textContent || 'Free Plan';
+        const tierName = tierText.replace(' Plan', '').toLowerCase();
+        
+        mobileTierLabel.textContent = tierText;
+        mobileTierLabel.className = `tier-label ${tierName}-tier`;
+        
+        // Update mobile tier badge with styled pill
+        if (mobileTierBadge) {
+            mobileTierBadge.innerHTML = `<span class="tier-pill ${tierName}-tier">${tierName}</span>`;
+        }
+    }
+
+    // Sync sessions info
+    if (sessionsRemaining && mobileSessionsInfo && resetsIn) {
+        const sessionsText = sessionsRemaining.textContent.replace('Sessions remaining: ', '');
+        const resetText = resetsIn.textContent.replace('Resets in: ', '');
+        mobileSessionsInfo.textContent = `Sessions: ${sessionsText} (resets ${resetText})`;
+    }
+    
+    console.log('✅ Mobile user data synced with tier styling');
+}
+
+// Handle layout changes on resize
+window.addEventListener('resize', function() {
+  const authTopbar = document.getElementById('auth-topbar');
+  if (!authTopbar || !currentUser) return;
+  
+  if (window.innerWidth >= 1024) {
+    // Desktop: show old topbar
+    authTopbar.style.display = 'block';
+    document.body.classList.add('has-topbar');
+  } else {
+    // Mobile: hide old topbar
+    authTopbar.style.display = 'none';
+    document.body.classList.remove('has-topbar');
+  }
+});

@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/analytics.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="main-body">
     <header>
@@ -57,36 +61,35 @@
             </div>
         </div>
 
+        <!-- Time Efficiency -->
+        <div class="analytics-card">
+            <h3>⏱️ Time Efficiency</h3>
+            <div class="time-metrics">
+                <div class="metric">
+                    <span class="metric-value" id="avg-time-per-question">0s</span>
+                    <span class="metric-label">Avg Time/Question</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value" id="avg-session-time">0m</span>
+                    <span class="metric-label">Avg Session Time</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value" id="questions-per-hour">0</span>
+                    <span class="metric-label">Questions/Hour</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value" id="success-rate">0%</span>
+                    <span class="metric-label">Success Rate (80%+)</span>
+                </div>
+            </div>
+        </div>
         <!-- NEW: Advanced Analytics Section -->
-        <div class="advanced-analytics">
+        <div class="advanced-analytics">          
             <!-- Question Type Performance -->
             <div class="analytics-card">
                 <h3>📊 Performance by Question Type</h3>
                 <div class="chart-container">
                     <canvas id="type-performance-chart"></canvas>
-                </div>
-            </div>
-            
-            <!-- Time Efficiency -->
-            <div class="analytics-card">
-                <h3>⏱️ Time Efficiency</h3>
-                <div class="time-metrics">
-                    <div class="metric">
-                        <span class="metric-value" id="avg-time-per-question">0s</span>
-                        <span class="metric-label">Avg Time/Question</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-value" id="avg-session-time">0m</span>
-                        <span class="metric-label">Avg Session Time</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-value" id="questions-per-hour">0</span>
-                        <span class="metric-label">Questions/Hour</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-value" id="success-rate">0%</span>
-                        <span class="metric-label">Success Rate (80%+)</span>
-                    </div>
                 </div>
             </div>
 

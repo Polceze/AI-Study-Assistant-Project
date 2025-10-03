@@ -8,61 +8,183 @@
         <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
         <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
         <link rel="manifest" href="{{ url_for('static', filename='images/site.webmanifest') }}">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+        
+        <!-- CSS Files -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/components/buttons.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/components/navigation.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/components/modals.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/components/cards.css') }}">
+        
+        <!-- Media queries for tablet and desktop -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/tablet.css') }}" media="(min-width: 768px)">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}" media="(min-width: 1024px)">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/rotation.css') }}">
+        {% block styles %}{% endblock %}
+        
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </head>
     <body>
-        <!-- Sidebar -->
-        <nav class="sidebar">
-             <ul class="upgrade">
-                <li><a href="/upgrade">Upgrade</a></li>
-            </ul>
-            <ul>
-                <li style="white-space: pre"><a href="/" class="{% if request.path == '/' %}active{% endif %}">🏠       Home</a></li>
-                <li style="white-space: pre"><a href="/analytics" class="{% if request.path == '/analytics' %}active{% endif %}">📊      Analytics</a></li>
-                <li style="white-space: pre"><a href="/sessions" class="{% if request.path == '/sessions' %}active{% endif %}">📚      My Sessions</a></li>
-                <li style="white-space: pre"><a href="/contact" class="{% if request.path == '/contact' %}active{% endif %}">📩      Contact</a></li>
+        <!-- Mobile Header (hidden on desktop) -->
+        <header class="mobile-header" id="mobile-header">
+            <div class="mobile-header-container">
+                <button class="hamburger-btn" id="mobile-menu-toggle" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                
+                <div class="mobile-logo">
+                    <img src="{{ url_for('static', filename='images/Logo1.png') }}" alt="ReviseAI" class="logo">
+                </div>
+                
+                <div class="mobile-tier-badge" id="mobile-tier-badge">
+                    <span class="tier-pill">Free</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Mobile Menu Overlay -->
+        <div class="mobile-menu-overlay" id="mobile-menu-overlay">
+            <div class="mobile-menu-content">
+                <div class="mobile-menu-header">
+                    <div class="mobile-user-info">
+                        <span class="user-email" id="mobile-user-email">Not signed in</span>
+                        <div class="mobile-tier-info">
+                            <span class="tier-label" id="mobile-tier-label">Free Plan</span>
+                            <span class="sessions-info" id="mobile-sessions-info">Sessions: Loading...</span>
+                        </div>
+                    </div>
+                    <button class="mobile-close-btn" id="mobile-close-btn" aria-label="Close menu">×</button>
+                </div>
+                
+                <nav class="mobile-nav">
+                    <a href="/" class="mobile-nav-link {% if request.path == '/' %}active{% endif %}">
+                        <span class="nav-icon">🏠</span>
+                        Home
+                    </a>
+                    <a href="/analytics" class="mobile-nav-link {% if request.path == '/analytics' %}active{% endif %}">
+                        <span class="nav-icon">📊</span>
+                        Analytics
+                    </a>
+                    <a href="/sessions" class="mobile-nav-link {% if request.path == '/sessions' %}active{% endif %}">
+                        <span class="nav-icon">📚</span>
+                        My Sessions
+                    </a>
+                    <a href="/upgrade" class="mobile-nav-link {% if request.path == '/upgrade' %}active{% endif %}">
+                        <span class="nav-icon">⭐</span>
+                        Upgrade
+                    </a>
+                    <a href="/contact" class="mobile-nav-link {% if request.path == '/contact' %}active{% endif %}">
+                        <span class="nav-icon">📩</span>
+                        Contact
+                    </a>
+                </nav>
+                
+                <div class="mobile-menu-footer">
+                    <button class="mobile-logout-btn" id="mobile-logout-btn">Sign Out</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop Sidebar -->
+        <nav class="sidebar desktop-sidebar" id="desktop-sidebar">
+            <!-- <div class="sidebar-header">
+                <img src="{{ url_for('static', filename='images/Logo1.png') }}" alt="ReviseAI" class="sidebar-logo">
+            </div> -->
+            
+            <ul class="sidebar-nav">
+                <li class="sidebar-upgrade">
+                    <a href="/upgrade" class="sidebar-link upgrade-link">
+                        <span class="nav-icon">⭐</span>
+                        Upgrade
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="/" class="sidebar-link {% if request.path == '/' %}active{% endif %}">
+                        <span class="nav-icon">🏠</span>
+                        Home
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="/analytics" class="sidebar-link {% if request.path == '/analytics' %}active{% endif %}">
+                        <span class="nav-icon">📊</span>
+                        Analytics
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="/sessions" class="sidebar-link {% if request.path == '/sessions' %}active{% endif %}">
+                        <span class="nav-icon">📚</span>
+                        My Sessions
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a href="/contact" class="sidebar-link {% if request.path == '/contact' %}active{% endif %}">
+                        <span class="nav-icon">📩</span>
+                        Contact
+                    </a>
+                </li>
             </ul>
         </nav>
-        <!-- Top Bar -->
-        <div id="auth-topbar" class="auth-topbar" style="display: none;">
-            <div class="container">
-                 <img src="{{ url_for('static', filename='images/Logo1.png') }}" alt="ReviseAI Logo" class="logo">
-                <div class="auth-topbar-content">
-                    <div class="tier-management">
-                        <div class="tier-graphic" id="user-tier">Loading...</div>
-                        <div class="tier-info">
-                            <span class="sessions-remaining" id="sessions-remaining">Sessions remaining: Loading...</span>
-                            <span class="resets-in" id="resets-in">Resets in: Loading...</span>
-                        </div>
-                        <button class="upgrade-btn" id="upgrade-page-btn" style="display: none;">Upgrade</button>
-                    </div>
-                    <div class="mobile-menu-toggle" id="mobile-menu-toggle">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
 
-                    <div class="desktop-content">
-                        <div class="auth-right">
-                            <span class="user-email" id="topbar-email">Not signed in</span>
-                            <span class="separator">|</span>
-                            <a href="#" id="logout-btn" class="logout-btn">Sign Out</a>
+        <!-- Existing Top Bar (kept for backward compatibility) -->
+        <div id="auth-topbar" class="auth-topbar" style="display: none;">
+            <div class="topbar-background">
+                <!-- Logo positioned independently -->
+                <div class="topbar-logo-container">
+                    <img src="{{ url_for('static', filename='images/Logo1.png') }}" alt="ReviseAI" class="logo">
+                </div>
+                <div class="container">
+                    <div class="auth-topbar-content">
+                        <div class="tier-management">
+                            <div class="tier-graphic" id="user-tier">Loading...</div>
+                            <div class="tier-info">
+                                <span class="sessions-remaining" id="sessions-remaining">Sessions remaining: Loading...</span>
+                                <span class="resets-in" id="resets-in">Resets in: Loading...</span>
+                            </div>
+                            <button class="upgrade-btn" id="upgrade-page-btn" style="display: none;">Upgrade</button>
+                        </div>
+                        <div class="mobile-menu-toggle" id="old-mobile-menu-toggle">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+
+                        <div class="desktop-content">
+                            <div class="auth-right">
+                                <span class="user-email" id="topbar-email">Not signed in</span>
+                                <span class="separator">|</span>
+                                <a href="#" id="logout-btn" class="logout-btn">Sign Out</a>
+                            </div>
+                        </div>
+                        <div class="mobile-menu" id="mobile-menu">
+                            <!-- <div class="mobile-tier-management">
+                                <div class="tier-graphic" id="mobile-user-tier">Loading...</div>
+                                <div class="tier-info">
+                                    <span class="sessions-remaining" id="mobile-sessions-remaining">Sessions remaining: Loading...</span>
+                                    <span class="resets-in" id="mobile-resets-in">Resets in: Loading...</span>
+                                </div>
+                                <button class="upgrade-btn" id="mobile-upgrade-page-btn">Upgrade</button>
+                            </div> -->
+                            <!-- <div class="mobile-auth-right">
+                                <span class="user-email" id="mobile-topbar-email">Not signed in</span>
+                                <button id="mobile-logout-btn" class="logout-btn">Sign Out</button>
+                            </div> -->
                         </div>
                     </div>
-                    <div class="mobile-menu" id="mobile-menu">
-                        <div class="mobile-tier-management">
-                            <div class="tier-graphic" id="mobile-user-tier">Loading...</div>
-                            <div class="tier-info">
-                                <span class="sessions-remaining" id="mobile-sessions-remaining">Sessions remaining: Loading...</span>
-                                <span class="resets-in" id="mobile-resets-in">Resets in: Loading...</span>
-                            </div>
-                            <button class="upgrade-btn" id="mobile-upgrade-page-btn">Upgrade</button>
-                        </div>
-                        <div class="mobile-auth-right">
-                            <span class="user-email" id="mobile-topbar-email">Not signed in</span>
-                            <button id="mobile-logout-btn" class="logout-btn">Sign Out</button>
-                        </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App Container -->
+        <div class="app-container">
+            <div class="main-content-wrapper">
+                
+                <!-- Main Content Area -->
+                <div class="container">            
+                    <div class="app-content">
+                        {% block content %}{% endblock %}
                     </div>
                 </div>
             </div>
@@ -73,6 +195,7 @@
             <div class="auth-modal-content">
                 <div class="auth-modal-header">
                     <img src="{{ url_for('static', filename='images/Logo.png') }}" alt="ReviseAI Logo" class="auth-logo">
+                    <h2>ReviseAI</h2>
                     <p>Enter your email to start studying</p>
                 </div>
                 <div class="auth-modal-body">
@@ -82,11 +205,6 @@
                 <div class="auth-modal-footer">
                     <p>Just your email • That's your ReviseAI ID</p>
                 </div>
-            </div>
-        </div>
-        <div class="container">            
-            <div class="app-container">
-                {% block content %}{% endblock %}
             </div>
         </div>
 

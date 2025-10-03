@@ -1,0 +1,97 @@
+/* desktop.css - 1024px+ */
+
+@media (min-width: 1024px) {
+  /* Spacious desktop layouts */
+  .grid-auto-fit {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+  
+  .card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-xl);
+  }
+  
+  /* Enhanced sidebar layout */
+  .layout-with-sidebar {
+    grid-template-columns: 250px 1fr;
+    gap: var(--space-2xl);
+  }
+}
+
+/* Desktop Tier Themes - Matching Mobile Styles */
+
+/* Base tier graphic styles */
+.tier-graphic {
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    text-align: center;
+    min-width: 80px;
+}
+
+/* Free Tier - Blue/Silver Theme */
+.tier-graphic.free-tier {
+  background: linear-gradient(135deg, #a3b7d6 0%, #9ec7f5 100%);
+  color: #1e293b;
+  border-color: #94a3b8;
+  box-shadow: 0 2px 4px rgba(148, 163, 184, 0.3);
+}
+
+.tier-graphic.free-tier::before {
+    content: "⚡";
+    margin-right: var(--space-xs);
+    font-size: 0.9em;
+}
+
+/* Silver Tier - Silver/Premium Theme */
+.tier-graphic.silver-tier {
+    background: linear-gradient(to right, #909090 0%, #f0f0f0 25%, #b0b0b0 50%, #cccccc 75%, #909090 100%);
+    color: #475569;
+    border-color: #94a3b8;
+    box-shadow: 0 2px 6px rgba(148, 163, 184, 0.4);
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.tier-graphic.silver-tier::before {
+    content: "⭐";
+    margin-right: var(--space-xs);
+    font-size: 0.9em;
+}
+
+/* Gold Tier - Gold/Premium Theme */
+.tier-graphic.gold-tier {
+  background: linear-gradient(to right, #bb9446, #FCF6BA, #b38a32, #FBF5B7, #aa7a26);
+  color: #78350f;
+  border-color: #d97706;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.tier-graphic.gold-tier::before {
+    content: "👑";
+    margin-right: var(--space-xs);
+    font-size: 0.9em;
+}
+
+/* Ensure mobile tier badges maintain their styles */
+.mobile-tier-badge .tier-pill {
+    font-size: 10px;
+    padding: 3px 8px;
+}
+
+.tier-info {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Update the tier info text colors to match */
+.tier-info .sessions-remaining,
+.tier-info .resets-in {
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
+}

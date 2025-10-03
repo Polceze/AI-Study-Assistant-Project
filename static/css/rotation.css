@@ -1,0 +1,236 @@
+/* Mobile landscape - compact layout for short screens */
+@media (max-width: 767px) and (orientation: landscape) and (max-height: 600px) {
+  
+  /* Compact the entire mobile menu */
+  .mobile-menu-content {
+    padding: var(--space-sm) 0;
+  }
+  
+  /* Compact header with better spacing */
+  .mobile-menu-header {
+    padding: var(--space-md) var(--space-sm);
+    min-height: auto;
+    flex-shrink: 0;
+  }
+  
+  /* Improved user info layout for landscape */
+  .mobile-user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: nowrap; /* Prevent wrapping */
+  }
+  
+  .mobile-user-info .user-email {
+    font-size: var(--font-size-sm);
+    margin-bottom: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: fit-content; /* Limit email width */
+  }
+  
+  .mobile-tier-info {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+    font-size: var(--font-size-xs);
+    flex-wrap: nowrap;
+  }
+  
+  .mobile-tier-info .tier-label {
+    background: var(--primary-color);
+    color: white;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  
+  .mobile-tier-info .sessions-info {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+  }
+  
+  /* More compact close button */
+  .mobile-close-btn {
+    font-size: var(--font-size-xl);
+    padding: var(--space-sm);
+    min-height: 36px;
+    min-width: 36px;
+  }
+  
+  /* Compact navigation items */
+  .mobile-nav {
+    padding: var(--space-sm) 0;
+    max-height: 40vh; /* Limit height to ensure scrollability */
+    overflow-y: auto;
+  }
+  
+  .mobile-nav-link {
+    padding: var(--space-sm) var(--space-lg);
+    gap: var(--space-sm);
+    min-height: 44px;
+    font-size: var(--font-size-sm);
+  }
+  
+  .mobile-nav-link .nav-icon {
+    font-size: 1em;
+    width: 18px;
+    min-width: 18px;
+  }
+  
+  /* Reduce spacing between nav items */
+  .mobile-nav-link + .mobile-nav-link {
+    margin-top: 1px;
+  }
+  
+  /* Compact footer */
+  .mobile-menu-footer {
+    padding: var(--space-xs) var(--space-lg) !important; /* Minimal padding */
+    min-height: 40px !important; /* Much smaller height */
+    border-top: 1px solid var(--border-light);
+  }
+  
+  .mobile-logout-btn {
+    padding: var(--space-xs) var(--space-md) !important;
+    min-height: 36px !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: var(--radius-md);
+  }
+}
+
+/* Enhanced landscape for slightly taller screens (601px+ height) */
+@media (max-width: 767px) and (orientation: landscape) and (min-height: 601px) {
+  .mobile-menu-content {
+    padding: var(--space-md) 0;
+  }
+
+   .mobile-user-info .user-email {
+    max-width: 150px; /* More space for email on taller screens */
+  }
+  
+  .mobile-nav {
+    max-height: 50vh; /* More space for taller landscape screens */
+  }
+  
+  .mobile-nav-link {
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--font-size-base);
+  }
+
+  .mobile-menu-footer {
+    padding: var(--space-sm) var(--space-lg) !important;
+    min-height: 45px !important;
+  }
+}
+
+/* Improved mobile menu scrolling behavior */
+.mobile-nav {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.mobile-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.mobile-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mobile-nav::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 2px;
+}
+
+/* Smooth animations for menu opening/closing */
+.mobile-menu-overlay {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-menu-content {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced touch targets for landscape */
+@media (max-width: 767px) and (orientation: landscape) {
+  .mobile-nav-link {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  .mobile-logout-btn {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  /* Better visual feedback for touches */
+  .mobile-nav-link:active {
+    background-color: var(--bg-tertiary);
+    transform: scale(0.98);
+    transition: all 0.1s ease;
+  }
+}
+
+/* Extra compact for very short landscape screens */
+@media (max-width: 767px) and (orientation: landscape) and (max-height: 500px) {
+  .mobile-menu-footer {
+    padding: 6px var(--space-lg) !important;
+    min-height: 35px !important;
+  }
+  
+  .mobile-logout-btn {
+    min-height: 32px !important;
+    font-size: var(--font-size-xs) !important;
+  }
+}
+
+/* Flexbox solution - footer sticks to bottom naturally */
+@media (max-width: 767px) and (orientation: landscape) {
+  .grid-auto-fit {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  .card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-md);
+  }
+
+  .mobile-menu-content {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+  }
+  
+  .mobile-menu-header {
+    flex-shrink: 0 !important;
+    position: relative;
+    padding-right: 60px;
+  }
+  
+  .mobile-nav {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding-bottom: 0 !important;
+    max-height: max-content;
+  }
+  
+  .mobile-menu-footer {
+    flex-shrink: 0 !important;
+    margin-top: auto !important; /* This pushes it to the bottom */
+    padding: var(--space-xs) var(--space-lg) !important;
+    min-height: 40px !important;
+  }
+
+ .mobile-close-btn {
+    position: absolute !important;
+    right: var(--space-md) !important;
+    top: 20% !important;
+    transform: translateY(-50%) !important;
+   
+  }
+}

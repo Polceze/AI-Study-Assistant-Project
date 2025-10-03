@@ -1,0 +1,200 @@
+/* Base button styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: center;
+  text-decoration: none;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px; /* Touch-friendly */
+  touch-action: manipulation;
+  user-select: none;
+}
+
+/* Button variants */
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--text-muted);
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
+  color: white;
+  border-color: var(--danger-color);
+}
+
+.btn-danger:hover {
+  background-color: #dc2626;
+  border-color: #dc2626;
+}
+
+/* Button sizes */
+.btn-sm {
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--font-size-sm);
+  min-height: 36px;
+}
+
+.btn-lg {
+  padding: var(--space-md) var(--space-xl);
+  font-size: var(--font-size-lg);
+  min-height: 52px;
+}
+
+/* Disabled state */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn:disabled:hover {
+  transform: none;
+}
+
+/* Generate and Save Button Styling */
+.generate-btn, .save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-xl);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  text-align: center;
+  text-decoration: none;
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 50px;
+  touch-action: manipulation;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+  background: var(--accent-color);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  border-color: var(--success-bg);
+  color: white;
+}
+
+.generate-btn:hover:not(:disabled),
+.save-btn:hover:not(:disabled) {
+  background: #049464;
+  transform: translateY(-2px);
+}
+
+.save-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(58, 237, 112, 0.4);
+}
+
+/* Disabled State */
+.generate-btn:disabled, .save-btn:disabled {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Success State for Save Button */
+.save-btn.saved {
+  background: linear-gradient(135deg, var(--accent-color), #059669);
+  border-color: var(--accent-color);
+  color: white;
+}
+
+.save-btn.saved:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  border-color: #059669;
+}
+
+/* Loading State */
+.generate-btn.loading, .save-btn.loading {
+  color: transparent;
+}
+
+.generate-btn.loading::after, .save-btn.loading::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: button-spinner 0.8s linear infinite;
+}
+
+@keyframes button-spinner {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Icon Support (if you add icons later) */
+.generate-btn .btn-icon, .save-btn .btn-icon {
+    font-size: 1.1em;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 767px) {
+  .generate-btn, .save-btn {
+    padding: var(--space-xs) var(--space-lg);
+    font-size: var(--font-size-base);
+  }
+}
+
+@media (min-width: 768px) {
+  .generate-btn, .save-btn {
+    width: auto;
+  }
+  
+  /* Make save button slightly smaller on desktop */
+  .save-btn {
+    min-width: 180px;
+    padding: var(--space-md) var(--space-lg);
+  }
+}
+
+/* Focus States for Accessibility */
+.generate-btn:focus-visible, .save-btn:focus-visible {
+  outline: 3px solid rgba(245, 158, 11, 0.4);
+  outline-offset: 2px;
+}
+
+/* Button Container in Results Section */
+.results-section .save-btn {
+  margin-top: 0;
+}

@@ -6,6 +6,13 @@ import json
 from datetime import datetime, timedelta
 
 class Database:
+    # Tier configuration
+    TIER_CONFIG = {
+        'free': {'limit': 3, 'period': 'daily', 'price': 0},
+        'silver': {'limit': 300, 'period': 'monthly', 'price': 100},
+        'gold': {'limit': 4000, 'period': 'yearly', 'price': 1000}
+    }
+
     def __init__(self):
         self.config = {
             'host': Config.DB_HOST,
@@ -85,6 +92,9 @@ class Database:
                     sessions_used_today INT DEFAULT 0,
                     last_session_reset TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     total_sessions_used INT DEFAULT 0,
+                    sessions_used_this_period INT DEFAULT 0,
+                    period_reset_date TIMESTAMP NULL,
+                    next_billing_date TIMESTAMP NULL,
                     payment_status VARCHAR(20) DEFAULT 'inactive'
                 ) ENGINE=InnoDB
             """)
@@ -469,7 +479,9 @@ class Database:
                 SELECT 
                     u.subscription_tier,
                     u.sessions_used_today,
+                    u.sessions_used_this_period,
                     u.last_session_reset,
+                    u.period_reset_date,    
                     u.total_sessions_used,
                     p.session_limit,
                     p.billing_period
@@ -480,46 +492,87 @@ class Database:
             
             result = cursor.fetchone()
             
-            if result:
-                # Calculate remaining sessions and reset time
-                remaining_sessions = max(0, result['session_limit'] - result['sessions_used_today'])
+            if not result:
+                return None
                 
-                # Calculate time until reset based on billing period
-                reset_time = None
-                if result['billing_period'] == 'daily':
-                    # Next reset is tomorrow at same time as last reset
-                    reset_time = result['last_session_reset'] + timedelta(days=1)
-                elif result['billing_period'] == 'monthly':
-                    # Next reset is next month
-                    reset_time = result['last_session_reset'] + timedelta(days=30)
-                elif result['billing_period'] == 'yearly':
-                    # Next reset is next year
-                    reset_time = result['last_session_reset'] + timedelta(days=365)
-                
-                time_until_reset = reset_time - datetime.now() if reset_time else None
-                
-                return {
-                    'tier': result['subscription_tier'],
-                    'sessions_used_today': result['sessions_used_today'],
-                    'session_limit': result['session_limit'],
-                    'remaining_sessions': remaining_sessions,
-                    'last_reset': result['last_session_reset'],
-                    'next_reset': reset_time,
-                    'time_until_reset': time_until_reset,
-                    'billing_period': result['billing_period'],
-                    'total_sessions_used': result['total_sessions_used']
-                }
-            
-            return None
+            # Initialize variables
+            remaining_sessions = 0
+            reset_in = timedelta(hours=24)
+            now = datetime.now()
 
-        except Error as e:
+            if result['subscription_tier'] == 'free':
+                if result['sessions_used_today'] == 0:
+                    # No sessions used yet - show full allowance
+                    remaining_sessions = 3
+                    reset_in = timedelta(hours=24)
+                else:
+                    # Check if reset needed
+                    last_reset = result['last_session_reset']
+                    
+                    if last_reset and (now - last_reset) >= timedelta(hours=24):
+                        remaining_sessions = 3
+                        reset_in = timedelta(hours=24)
+                    else:
+                        remaining_sessions = max(0, 3 - result['sessions_used_today'])
+                        next_reset = last_reset + timedelta(hours=24) if last_reset else now + timedelta(hours=24)
+                        reset_in = next_reset - now
+
+            # Silver tier logic 
+            elif result['subscription_tier'] == 'silver':
+                if result['sessions_used_this_period'] == 0:
+                    remaining_sessions = 300
+                    reset_in = result['period_reset_date'] - now if result['period_reset_date'] else timedelta(days=30)
+                else:
+                    remaining_sessions = max(0, 300 - result['sessions_used_this_period'])
+                    reset_in = result['period_reset_date'] - now if result['period_reset_date'] else timedelta(days=30)
+                
+                # Format for display: "Xd Yh" format
+                if reset_in.days > 0:
+                    reset_display = f"{reset_in.days}d {int(reset_in.seconds // 3600)}h"
+                else:
+                    hours = int(reset_in.total_seconds() // 3600)
+                    minutes = int((reset_in.total_seconds() % 3600) // 60)
+                    reset_display = f"{hours}h {minutes}m"
+
+            elif result['subscription_tier'] == 'gold':
+                if result['sessions_used_this_period'] == 0:
+                    remaining_sessions = 4000
+                    reset_in = result['period_reset_date'] - now if result['period_reset_date'] else timedelta(days=365)
+                else:
+                    remaining_sessions = max(0, 4000 - result['sessions_used_this_period'])
+                    reset_in = result['period_reset_date'] - now if result['period_reset_date'] else timedelta(days=365)
+                
+                # Format for display: "Xd Yh" format
+                if reset_in.days > 0:
+                    reset_display = f"{reset_in.days}d {int(reset_in.seconds // 3600)}h"
+                else:
+                    hours = int(reset_in.total_seconds() // 3600)
+                    minutes = int((reset_in.total_seconds() % 3600) // 60)
+                    reset_display = f"{hours}h {minutes}m"
+
+            # Format reset time for display
+            hours, remainder = divmod(reset_in.total_seconds(), 3600)
+            minutes = remainder // 60
+            reset_display = f"{int(hours)}h {int(minutes)}m"
+            
+            return {
+                'tier': result['subscription_tier'],
+                'sessions_used_today': result['sessions_used_today'],
+                'session_limit': result['session_limit'],
+                'remaining_sessions': remaining_sessions,
+                'reset_in': reset_display,
+                'billing_period': result['billing_period'],
+                'total_sessions_used': result['total_sessions_used']
+            }
+
+        except Exception as e:
             print(f"Error getting user tier info: {e}")
             return None
         finally:
             if cursor: 
                 cursor.close()
             if connection and connection.is_connected():
-                connection.close() 
+                connection.close()
 
     def get_user_sessions_with_analytics(self, user_id):
         """Get user sessions with analytics data"""
@@ -596,3 +649,186 @@ class Database:
                 cursor.close()
             if connection and connection.is_connected():
                 connection.close() 
+
+    def check_session_allowance(self, user_id):
+        """Check session allowance for any tier"""
+        connection = self.get_connection()
+        if connection is None:
+            return {"allowed": False, "remaining": 0, "limit": 0, "reset_in": "unknown", "period": "daily"}
+        
+        cursor = None
+        try:
+            cursor = connection.cursor(dictionary=True)
+            
+            # Get user's current tier and session usage
+            cursor.execute("""
+                SELECT subscription_tier, sessions_used_today, last_session_reset, 
+                    subscription_start_date, sessions_used_this_period, period_reset_date
+                FROM users WHERE id = %s
+            """, (user_id,))
+            user = cursor.fetchone()
+            
+            if not user:
+                return {"allowed": False, "remaining": 0, "limit": 0, "reset_in": "unknown", "period": "daily"}
+
+            tier = user['subscription_tier'] or 'free'
+            tier_config = self.TIER_CONFIG.get(tier, self.TIER_CONFIG['free'])
+            
+            now = datetime.now()
+            remaining = 0
+            reset_in_str = "24h 0m"
+            period = tier_config['period']
+
+            # FREE TIER - Daily limit
+            if tier == 'free':
+                if user['sessions_used_today'] == 0:
+                    remaining = tier_config['limit']
+                    reset_in_str = "24h 0m"
+                else:
+                    last_reset = user['last_session_reset']
+                    if last_reset and (now - last_reset) >= timedelta(hours=24):
+                        # Reset counter
+                        cursor.execute("UPDATE users SET sessions_used_today = 0, last_session_reset = %s WHERE id = %s", (now, user_id))
+                        connection.commit()
+                        remaining = tier_config['limit']
+                    else:
+                        remaining = max(0, tier_config['limit'] - user['sessions_used_today'])
+                        next_reset = last_reset + timedelta(hours=24) if last_reset else now + timedelta(hours=24)
+                        reset_in = next_reset - now
+                        reset_in_str = f"{int(reset_in.total_seconds() // 3600)}h {int((reset_in.total_seconds() % 3600) // 60)}m"
+            
+            # SILVER TIER - Monthly limit
+            elif tier == 'silver':
+                if not user['period_reset_date']:
+                    # User hasn't created any sessions yet - show full allowance
+                    remaining = tier_config['limit']
+                    reset_in_str = "30d 0h"  # Show full period until first session
+                else:
+                    # Existing logic for users with active periods
+                    if now >= user['period_reset_date']:
+                        # Reset monthly counter
+                        next_reset_date = user['period_reset_date'] + timedelta(days=30)
+                        cursor.execute("""
+                            UPDATE users SET sessions_used_this_period = 0, 
+                            period_reset_date = %s WHERE id = %s
+                        """, (next_reset_date, user_id))
+                        connection.commit()
+                        remaining = tier_config['limit']
+                    else:
+                        # Calculate remaining sessions
+                        remaining = max(0, tier_config['limit'] - (user['sessions_used_this_period'] or 0))
+                        reset_in = user['period_reset_date'] - now
+                        reset_in_str = f"{reset_in.days}d {int(reset_in.seconds // 3600)}h"
+            
+            # GOLD TIER - Yearly limit
+            elif tier == 'gold':
+                if not user['period_reset_date']:
+                    # User hasn't created any sessions yet - show full allowance
+                    remaining = tier_config['limit']
+                    reset_in_str = "365d 0h"
+                else:
+                    # Check if yearly period has expired
+                    if now >= user['period_reset_date']:
+                        # Reset yearly counter
+                        next_reset_date = user['period_reset_date'] + timedelta(days=365)
+                        cursor.execute("""
+                            UPDATE users SET sessions_used_this_period = 0, 
+                            period_reset_date = %s WHERE id = %s
+                        """, (next_reset_date, user_id))
+                        connection.commit()
+                        remaining = tier_config['limit']
+                    else:
+                        # Calculate remaining sessions
+                        remaining = max(0, tier_config['limit'] - (user['sessions_used_this_period'] or 0))
+                        reset_in = user['period_reset_date'] - now
+                        reset_in_str = f"{reset_in.days}d {int(reset_in.seconds // 3600)}h"
+
+            else:
+                # Unknown tier - fallback to unlimited access but log error
+                print(f"Warning: Unknown tier '{tier}', defaulting to unlimited access")
+                remaining = tier_config['limit']
+                reset_in_str = "unlimited"
+            
+            return {
+                "allowed": remaining > 0,
+                "remaining": remaining,
+                "limit": tier_config['limit'],
+                "reset_in": reset_in_str,
+                "period": period
+            }
+                    
+        except Exception as e:
+            print(f"Error checking session allowance: {e}")
+            return {"allowed": True, "remaining": 999, "limit": 999, "reset_in": "unknown", "period": "daily"}
+        finally:
+            if cursor:
+                cursor.close()
+            if connection and connection.is_connected():
+                connection.close()
+
+    def fetch_one(self, query, params=None):
+        """Run SELECT query that returns single row"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        cursor = None
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query, params or ())
+            result = cursor.fetchone()
+            return result
+        except Exception as e:
+            print(f"Database fetch_one error: {e}")
+            return None
+        finally:
+            if cursor:
+                cursor.close()
+            if conn and conn.is_connected():
+                conn.close()
+
+    def handle_tier_change(self, user_id, new_tier):
+        """Reset period tracking when user changes tiers"""
+        connection = self.get_connection()
+        if not connection:
+            return False
+        
+        cursor = None
+        try:
+            cursor = connection.cursor()
+            
+            if new_tier == 'free':
+                # Reset to free tier logic
+                cursor.execute("""
+                    UPDATE users 
+                    SET sessions_used_this_period = 0,
+                        period_reset_date = NULL,
+                        sessions_used_today = 0  # Also reset daily counter
+                    WHERE id = %s
+                """, (user_id,))
+            else:
+                # Paid tier - set appropriate reset period
+                days_to_add = 30 if new_tier == 'silver' else 365
+                new_reset_date = datetime.now() + timedelta(days=days_to_add)
+                
+                cursor.execute("""
+                    UPDATE users 
+                    SET sessions_used_this_period = 0,
+                        period_reset_date = %s,
+                        sessions_used_today = 0  # Reset daily counter too
+                    WHERE id = %s
+                """, (new_reset_date, user_id))
+            
+            connection.commit()
+            print(f"Reset period for user {user_id} to {new_tier} tier")
+            return True
+            
+        except Exception as e:
+            print(f"Error handling tier change: {e}")
+            connection.rollback()
+            return False
+        finally:
+            if cursor:
+                cursor.close()
+            if connection and connection.is_connected():
+                connection.close()

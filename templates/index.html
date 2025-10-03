@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/home.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="main-body">
     <header>
@@ -20,9 +24,10 @@
                 <div id="ai-status" class="ai-status">
                     AI status: Ready
                 </div>
+                <div id="session-allowance-display" class="session-allowance"></div>
                 <div class="setting-1">
                     <div>
-                        <label for="question-difficulty" class="sr-only">Questions difficulty:</label>
+                        <label for="question-difficulty">Difficulty:</label>
                     </div>
                     <div>
                         <select id="question-difficulty" name="question_difficulty" aria-label="Question difficulty">
@@ -34,7 +39,7 @@
                 
                 <div class="setting-2">
                     <div>
-                        <label for="question-type" class="sr-only">Questions type:</label>
+                        <label for="question-type">Type:</label>
                     </div>
                     <div>
                         <select id="question-type" name="question_type" aria-label="Question type">
@@ -46,7 +51,7 @@
 
                 <div class="setting-3">
                     <div>
-                        <label for="num-questions">Number of Questions:</label>
+                        <label for="num-questions">Questions:</label>
                     </div>
                     <div>
                         <input type="number" id="num-questions" min="1" max="12" value="6">
